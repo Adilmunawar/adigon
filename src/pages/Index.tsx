@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,7 @@ import AppSidebar from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/providers/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const examplePrompts = [
   "generate image: a futuristic city at night",
@@ -31,6 +31,84 @@ const Index = () => {
   const [tempApiKey, setTempApiKey] = useState("");
   const { user, logout } = useAuth();
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const { data: conversations, refetch: refetchConversations } = useQuery({
+    queryKey: ["conversations", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from("conversations")
+        .select("id, title")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        toast.error("Failed to load conversations.");
+        console.error(error);
+        return [];
+      }
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  useEffect(() => {
+    if (conversations && conversations.length > 0 && !activeConversationId) {
+      handleSelectConversation(conversations[0].id);
+    } else if (conversations?.length === 0) {
+      setMessages([]);
+      setActiveConversationId(null);
+    }
+  }, [conversations, user]);
+
+  const handleSelectConversation = async (conversationId: string) => {
+    if (isLoading) return;
+    setIsLoading(true);
+    setActiveConversationId(conversationId);
+    
+    const { data: messagesData, error: messagesError } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true });
+    
+    if(messagesError) {
+      toast.error("Failed to load messages.");
+      console.error(messagesError);
+      setMessages([]);
+    } else {
+      const formattedMessages = messagesData.map(msg => ({
+        role: msg.role as 'user' | 'model',
+        parts: msg.parts as { text: string }[],
+        imageUrl: msg.image_url ?? undefined
+      }));
+      setMessages(formattedMessages);
+    }
+    setIsLoading(false);
+  };
+
+  const handleDeleteConversation = async (conversationId: string) => {
+    const { error } = await supabase
+      .from('conversations')
+      .delete()
+      .eq('id', conversationId);
+
+    if (error) {
+      toast.error("Failed to delete conversation.");
+      console.error(error);
+    } else {
+      toast.success("Conversation deleted.");
+      await refetchConversations();
+      if (activeConversationId === conversationId) {
+        const latestConversation = queryClient.getQueryData<any[]>(["conversations", user?.id]);
+        if (latestConversation && latestConversation.length > 0) {
+            handleSelectConversation(latestConversation[0].id);
+        } else {
+            handleNewChat();
+        }
+      }
+    }
+  };
 
   useEffect(() => {
     const storedApiKey = localStorage.getItem("runwareApiKey");
@@ -143,6 +221,7 @@ const Index = () => {
         if (error) throw error;
         currentConversationId = data.id;
         setActiveConversationId(data.id);
+        await refetchConversations();
       }
       
       await supabase.from('messages').insert({
@@ -207,6 +286,10 @@ const Index = () => {
           setTempApiKey={setTempApiKey}
           handleSaveApiKey={handleSaveApiKey}
           handleNewChat={handleNewChat}
+          conversations={conversations || []}
+          activeConversationId={activeConversationId}
+          onSelectConversation={handleSelectConversation}
+          onDeleteConversation={handleDeleteConversation}
         />
         <div className="flex flex-col flex-1 overflow-hidden">
           <main className="flex-1 overflow-y-auto p-6 relative">
@@ -245,7 +328,7 @@ const Index = () => {
                 </div>
               )}
 
-              {isLoading && (
+              {isLoading && messages.length === 0 && (
                 <div className="flex items-start gap-4 py-4 animate-fade-in-up">
                   <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary ring-2 ring-primary/40">
                     <Bot size={24} />
@@ -269,7 +352,7 @@ const Index = () => {
                 className="flex-1 bg-muted border-border focus:ring-2 focus:ring-primary h-12 text-base px-4 rounded-xl transition-all duration-300 focus:bg-background/70 focus:scale-[1.01]"
               />
               <Button type="submit" disabled={isLoading || !user} size="icon" className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground transition-all duration-300 hover:scale-110 hover:brightness-110 active:scale-105 [&_svg]:size-6">
-                {isLoading ? (
+                {isLoading && messages.length > 0 ? (
                   <LoaderCircle className="animate-spin" />
                 ) : (
                   <Send />
