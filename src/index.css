@@ -1,4 +1,6 @@
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -13,19 +15,19 @@
     --card-foreground: 210 40% 98%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 217 91% 60%;
+    --primary: 262 88% 65%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 222 47% 11%;
+    --secondary: 240 5% 15%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 222 47% 11%;
+    --muted: 240 5% 25%;
     --muted-foreground: 215 20% 65%;
-    --accent: 217 91% 60%;
+    --accent: 262 88% 65%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-    --border: 222 47% 11%;
-    --input: 222 47% 11%;
-    --ring: 217 91% 60%;
+    --border: 240 5% 20%;
+    --input: 240 5% 18%;
+    --ring: 262 88% 70%;
     --radius: 0.75rem;
   }
 }
@@ -49,14 +51,15 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
     background-size: 400% 400%;
     background-image: linear-gradient(
       -45deg,
-      hsl(240, 20%, 5%),
-      hsl(230, 25%, 8%),
-      hsl(220, 30%, 11%),
-      hsl(230, 25%, 8%),
-      hsl(240, 20%, 5%)
+      hsl(240, 30%, 8%),
+      hsl(230, 25%, 12%),
+      hsl(260, 35%, 15%),
+      hsl(230, 25%, 12%),
+      hsl(240, 30%, 8%)
     );
     animation: background-pan 25s ease infinite;
   }

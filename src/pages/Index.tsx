@@ -598,7 +598,7 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen bg-transparent text-foreground">
+      <div className="flex h-screen bg-transparent text-foreground font-sans">
         <AppSidebar
           isSettingsOpen={isSettingsOpen}
           setIsSettingsOpen={setIsSettingsOpen}
@@ -644,20 +644,22 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
               {messages.length === 0 && !isLoading && (
                 <div className="py-8 text-center animate-fade-in-up">
                     <ThreeScene />
-                    <h2 className="text-lg font-semibold text-muted-foreground mb-4">Try one of these prompts:</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg mx-auto">
+                    <h2 className="text-2xl font-bold text-foreground mt-8 mb-2">Welcome to Lovable</h2>
+                    <p className="text-lg text-muted-foreground mb-8">What can I help you create today?</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
                         {examplePrompts.map((prompt) => {
                           const Icon = prompt.icon;
                           return (
-                            <Button 
-                                key={prompt.text} 
-                                variant="outline" 
-                                className="group text-left justify-start h-auto py-3 px-4 hover:bg-primary/10 hover:border-primary/50 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/20 flex items-center gap-3"
+                            <button 
+                                key={prompt.text}
                                 onClick={() => handleSendMessage(prompt.text)}
+                                className="group p-4 bg-secondary/50 border border-border rounded-xl hover:bg-primary/10 hover:border-primary/50 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/20 flex flex-col items-center text-center gap-3"
                             >
-                                <Icon size={20} className="text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-                                <span className="flex-1">{prompt.text}</span>
-                            </Button>
+                                <div className="bg-primary/10 p-3 rounded-full text-primary">
+                                  <Icon size={24} className="transition-transform duration-300 group-hover:scale-110" />
+                                </div>
+                                <span className="font-medium text-sm text-foreground">{prompt.text}</span>
+                            </button>
                           );
                         })}
                     </div>
@@ -667,7 +669,7 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
               <div ref={messagesEndRef} />
             </div>
           </main>
-          <footer className="p-4 border-t border-white/10 bg-secondary/30 backdrop-blur-md">
+          <footer className="p-4 border-t border-border/50 bg-background/50 backdrop-blur-lg">
             <div className="max-w-4xl mx-auto">
               {attachedFile && (
                 <div className="mb-2 flex items-center justify-between rounded-lg border bg-muted p-2 text-sm">
@@ -715,9 +717,9 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder={isCoderMode ? "Coder Mode: Describe the file or ask a question..." : "Type 'generate image: a cat' or ask anything..."}
                   disabled={isLoading || !user}
-                  className="flex-1 bg-secondary/50 border-border focus:ring-2 focus:ring-primary h-12 text-base px-4 rounded-xl transition-all duration-300 focus:bg-secondary/70 focus:scale-[1.01]"
+                  className="flex-1 bg-secondary/80 border-border/80 focus:ring-2 focus:ring-primary h-12 text-base px-4 rounded-xl transition-all duration-300 focus:bg-secondary focus:scale-[1.01] placeholder:text-muted-foreground/80"
                 />
-                <Button type="submit" disabled={isLoading || (!input.trim() && !attachedFile) || !user} size="icon" className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground transition-all duration-300 hover:scale-110 hover:brightness-110 active:scale-105 [&_svg]:size-6">
+                <Button type="submit" disabled={isLoading || (!input.trim() && !attachedFile) || !user} size="icon" className="h-12 w-12 rounded-xl bg-primary text-primary-foreground transition-all duration-300 hover:scale-110 hover:brightness-110 active:scale-105 [&_svg]:size-6 shadow-lg shadow-primary/30">
                   {isLoading && messages.length > 0 ? (
                     <LoaderCircle className="animate-spin" />
                   ) : (

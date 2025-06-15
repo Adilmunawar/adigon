@@ -40,14 +40,14 @@ const UserMessageContent = ({ text }: { text: string }) => {
   return (
     <div className="space-y-3">
       {userPrompt && <p className="leading-relaxed whitespace-pre-wrap">{userPrompt}</p>}
-      <Accordion type="single" collapsible className="w-full">
-        <AccordionItem value="item-1" className="border-none bg-primary/10 rounded-lg">
-          <AccordionTrigger className="p-3 hover:no-underline justify-start gap-2 text-sm font-semibold">
+      <Accordion type="single" collapsible className="w-full bg-black/20 rounded-lg border border-white/10">
+        <AccordionItem value="item-1" className="border-none">
+          <AccordionTrigger className="p-3 hover:no-underline justify-start gap-2 text-sm font-semibold text-primary-foreground/80 hover:text-primary-foreground">
             <Paperclip className="h-4 w-4" />
             <span>Attachment: {fileName}</span>
           </AccordionTrigger>
           <AccordionContent className="pt-0 px-2 pb-2">
-             <div className="bg-background/50 rounded-md max-h-60 overflow-y-auto mt-1">
+             <div className="bg-black/30 rounded-md max-h-60 overflow-y-auto mt-1">
                 <pre className="text-xs font-mono p-3 whitespace-pre-wrap break-words">{fileContent}</pre>
              </div>
           </AccordionContent>
@@ -173,10 +173,10 @@ const ChatMessage = ({ message, onReviewCode }: ChatMessageProps) => {
       <div className={cn("flex flex-col w-full max-w-xl", isUser ? "items-end" : "items-start")}>
         <div
           className={cn(
-            "rounded-2xl px-4 md:px-5 py-3 text-base shadow-lg transition-all duration-300 group-hover:shadow-primary/20 border border-white/10",
+            "px-4 md:px-5 py-3 text-base shadow-lg transition-all duration-300 group-hover:shadow-primary/20 border",
             isUser
-              ? "bg-gradient-to-br from-primary/70 to-accent/70 text-primary-foreground backdrop-blur-md"
-              : "bg-secondary/50 text-secondary-foreground backdrop-blur-md"
+              ? "bg-primary text-primary-foreground border-primary/50 rounded-t-2xl rounded-bl-2xl"
+              : "bg-secondary text-secondary-foreground border-border rounded-t-2xl rounded-br-2xl"
           )}
         >
           {isUser ? (
@@ -189,7 +189,7 @@ const ChatMessage = ({ message, onReviewCode }: ChatMessageProps) => {
             </ReactMarkdown>
           )}
           {message.imageUrl && (
-              <img src={message.imageUrl} alt="Generated content" className="mt-3 rounded-xl max-w-full h-auto" />
+              <img src={message.imageUrl} alt="Generated content" className="mt-3 rounded-lg max-w-full h-auto" />
           )}
           {!isUser && message.code && onReviewCode && (
             <div className="mt-3 border-t pt-3">
