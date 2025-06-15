@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     rollupOptions: {
-      external: ['react-syntax-highlighter'],
+      external: ['react-syntax-highlighter', 'react-syntax-highlighter/dist/esm/styles/prism'],
     },
   },
 }));
