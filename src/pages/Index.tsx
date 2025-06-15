@@ -664,6 +664,21 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
     handleSendMessage();
   };
 
+  const handleSavePerplexityApiKey = () => {
+    if (tempPerplexityApiKey) {
+      localStorage.setItem("perplexityApiKey", tempPerplexityApiKey);
+      setPerplexityApiKey(tempPerplexityApiKey);
+      setIsPerplexitySettingsOpen(false);
+      toast.success("Perplexity API Key saved!");
+      // If user was in deep search mode with a prompt, trigger the search now
+      if (input.trim() && isDeepSearchMode) {
+        handleSendMessage();
+      }
+    } else {
+      toast.error("Please enter a valid API key.");
+    }
+  };
+
   return (
     <SidebarProvider>
       <div className="flex h-screen bg-transparent text-foreground font-sans">
