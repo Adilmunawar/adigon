@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/sonner";
+import ThreeScene from "@/components/ThreeScene";
 
 const initialMessage: Message = {
   role: 'model',
@@ -133,7 +133,6 @@ const Index = () => {
     handleSendMessage();
   };
 
-
   return (
     <div className="flex flex-col h-screen bg-background text-foreground">
       <header className="p-4 border-b border-white/10 flex items-center justify-between backdrop-blur-md bg-background/30 sticky top-0 z-10">
@@ -203,7 +202,8 @@ const Index = () => {
 
           {messages.length === 1 && !isLoading && (
             <div className="py-8 text-center animate-fade-in-up">
-                <h2 className="text-lg font-semibold text-muted-foreground mb-4">Try one of these prompts:</h2>
+                <ThreeScene />
+                <h2 className="text-lg font-semibold text-muted-foreground mb-4 mt-4">Try one of these prompts:</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg mx-auto">
                     {examplePrompts.map((prompt) => (
                         <Button 
