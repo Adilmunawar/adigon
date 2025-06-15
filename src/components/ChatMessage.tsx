@@ -1,19 +1,23 @@
+
 import { cn } from "@/lib/utils";
-import { Bot, User, Copy } from "lucide-react";
+import { Bot, User, Copy, Code } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import CodeBlock from "./CodeBlock";
+import { Button } from "./ui/button";
 
 export interface Message {
   role: "user" | "model";
   parts: { text: string }[];
   imageUrl?: string;
+  code?: string;
 }
 
 interface ChatMessageProps {
   message: Message;
+  onReviewCode?: (code: string) => void;
 }
 
-const ChatMessage = ({ message }: ChatMessageProps) => {
+const ChatMessage = ({ message, onReviewCode }: ChatMessageProps) => {
   const isUser = message.role === "user";
 
   const handleCopy = () => {
@@ -53,6 +57,14 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
         )}
         {message.imageUrl && (
             <img src={message.imageUrl} alt="Generated content" className="mt-3 rounded-xl max-w-full h-auto" />
+        )}
+        {!isUser && message.code && onReviewCode && (
+          <div className="mt-3 border-t pt-3">
+            <Button variant="outline" size="sm" onClick={() => onReviewCode(message.code!)} className="w-full">
+              <Code className="mr-2 h-4 w-4" />
+              Review Code
+            </Button>
+          </div>
         )}
       </div>
       {isUser ? (

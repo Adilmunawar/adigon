@@ -85,7 +85,9 @@ const Index = () => {
       const formattedMessages = messagesData.map(msg => ({
         role: msg.role as 'user' | 'model',
         parts: msg.parts as { text: string }[],
-        imageUrl: msg.image_url ?? undefined
+        imageUrl: msg.image_url ?? undefined,
+        // Note: 'code' is not persisted in the database in this implementation
+        // so it will be undefined for reloaded messages.
       }));
       setMessages(formattedMessages);
     }
@@ -166,7 +168,9 @@ const Index = () => {
           const formattedMessages = messagesData.map(msg => ({
             role: msg.role as 'user' | 'model',
             parts: msg.parts as { text: string }[],
-            imageUrl: msg.image_url ?? undefined
+            imageUrl: msg.image_url ?? undefined,
+            // Note: 'code' is not persisted in the database in this implementation
+            // so it will be undefined for reloaded messages.
           }));
           setMessages(formattedMessages);
         }
@@ -211,6 +215,10 @@ const Index = () => {
       toast.info(`Attached file: ${file.name}`);
       // Future functionality can be added here to process the file
     }
+  };
+
+  const handleReviewCode = (code: string) => {
+    setCoderResponse(code);
   };
 
   const handleSendMessage = async (promptOverride?: string) => {
@@ -280,12 +288,13 @@ const Index = () => {
         
         if (isCoderMode) {
           setCoderResponse(response);
-          const modelMessage: Message = { role: "model", parts: [{ text: "I have generated the code in the side panel for you." }] };
+          const modelMessage: Message = { role: "model", parts: [{ text: "I have generated the code in the side panel for you." }], code: response };
           setMessages((prev) => [...prev, modelMessage]);
            await supabase.from('messages').insert({
             conversation_id: currentConversationId,
             role: 'model',
             parts: modelMessage.parts,
+            // 'code' property is not saved to DB
           });
         } else {
           const modelMessage: Message = { role: "model", parts: [{ text: response }] };
@@ -341,7 +350,7 @@ const Index = () => {
             )}
             <div className="max-w-4xl mx-auto pt-8">
               {messages.map((msg, index) => (
-                <ChatMessage key={index} message={msg} />
+                <ChatMessage key={index} message={msg} onReviewCode={handleReviewCode} />
               ))}
 
               {messages.length === 0 && !isLoading && (
