@@ -1,6 +1,5 @@
 
 import AuthForm from "@/components/AuthForm";
-import DeveloperCredit from "@/components/DeveloperCredit";
 
 const AuthPage = () => {
   return (
@@ -9,7 +8,6 @@ const AuthPage = () => {
         <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-primary/20 opacity-50 blur-[100px]"></div>
       </div>
       <AuthForm />
-      <DeveloperCredit className="absolute bottom-4 text-center w-full" />
     </div>
   );
 };

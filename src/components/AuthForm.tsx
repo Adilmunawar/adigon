@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import DeveloperCredit from "./DeveloperCredit";
 
 const formSchema = z.object({
   isSignIn: z.boolean(),
@@ -77,7 +78,6 @@ export default function AuthForm() {
     form.setValue("isSignIn", newIsSignIn);
   };
 
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     if (values.isSignIn) {
@@ -112,95 +112,100 @@ export default function AuthForm() {
   }
 
   return (
-    <Card className="w-full max-w-sm bg-background/80 backdrop-blur-sm border-border/50 shadow-2xl shadow-primary/10 animate-scale-in">
-      <CardHeader className="text-center">
-        <CardTitle className="text-3xl font-bold">{isSignIn ? "Sign In" : "Sign Up"}</CardTitle>
-        <CardDescription>
-          {isSignIn ? "to continue to your chat history" : "to create an account"}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {!isSignIn && (
+    <div className="w-full max-w-sm flex flex-col items-center">
+      <Card className="w-full bg-background/80 backdrop-blur-sm border-border/50 shadow-2xl shadow-primary/10 animate-scale-in">
+        <CardHeader className="text-center">
+          <CardTitle className="text-3xl font-bold">{isSignIn ? "Sign In" : "Sign Up"}</CardTitle>
+          <CardDescription>
+            {isSignIn ? "to continue to your chat history" : "to create an account"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {!isSignIn && (
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Adil Munawar" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               <FormField
                 control={form.control}
-                name="name"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="Adil Munawar" {...field} />
+                      <Input placeholder="you@example.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            )}
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="you@example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            {!isSignIn && (
-               <FormField
+              <FormField
                 control={form.control}
-                name="gender"
+                name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Gender</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select your gender" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                        <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            )}
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
-              {isSignIn ? "Sign In" : "Sign Up"}
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-      <div className="p-6 pt-0 text-center text-sm">
+              {!isSignIn && (
+                 <FormField
+                  control={form.control}
+                  name="gender"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Gender</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select your gender" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                          <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
+                {isSignIn ? "Sign In" : "Sign Up"}
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+      <div className="mt-6 text-center text-sm text-muted-foreground">
         {isSignIn ? "Don't have an account?" : "Already have an account?"}{" "}
-        <Button variant="link" onClick={toggleFormType} className="p-0 h-auto">
+        <Button variant="link" onClick={toggleFormType} className="p-0 h-auto font-semibold text-primary hover:text-primary/90 transition-colors">
           {isSignIn ? "Sign Up" : "Sign In"}
         </Button>
       </div>
-    </Card>
+      <div className="mt-8">
+        <DeveloperCredit />
+      </div>
+    </div>
   );
 }
