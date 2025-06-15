@@ -546,7 +546,7 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
             const extractedDataString = await runChat(profileExtractionPrompt, []);
             const extractedData = JSON.parse(extractedDataString);
             
-            if (Object.keys(extractedData).length > 0) {
+            if (extractedData && typeof extractedData === 'object' && !Array.isArray(extractedData) && Object.keys(extractedData).length > 0) {
               const currentProfileData = userProfile || {};
               const newProfileData = { ...currentProfileData, ...extractedData };
               
