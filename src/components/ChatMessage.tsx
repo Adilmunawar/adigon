@@ -27,7 +27,7 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
   return (
     <div
       className={cn(
-        "group flex items-start gap-4 py-4 animate-fade-in-up",
+        "group flex animate-fade-in-up items-start gap-4 py-4",
         isUser && "justify-end"
       )}
     >
@@ -38,9 +38,9 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
       )}
       <div
         className={cn(
-          "max-w-xl rounded-2xl px-5 py-3 text-base shadow-md",
+          "max-w-xl rounded-2xl px-5 py-3 text-base shadow-lg transition-all duration-300",
           isUser
-            ? "bg-primary text-primary-foreground"
+            ? "bg-gradient-to-br from-primary to-accent text-primary-foreground"
             : "bg-muted"
         )}
       >

@@ -136,7 +136,7 @@ const Index = () => {
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground">
-      <header className="p-4 border-b border-white/10 flex items-center justify-between backdrop-blur-sm bg-background/50 sticky top-0 z-10">
+      <header className="p-4 border-b border-white/10 flex items-center justify-between backdrop-blur-md bg-background/30 sticky top-0 z-10">
         <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 text-transparent bg-clip-text">
           AdiGon
         </h1>
@@ -204,12 +204,12 @@ const Index = () => {
           {messages.length === 1 && !isLoading && (
             <div className="py-8 text-center animate-fade-in-up">
                 <h2 className="text-lg font-semibold text-muted-foreground mb-4">Try one of these prompts:</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg mx-auto">
                     {examplePrompts.map((prompt) => (
                         <Button 
                             key={prompt} 
                             variant="outline" 
-                            className="text-left justify-start h-auto py-3 px-4 hover:bg-primary/10 hover:border-primary/50 transition-all duration-300"
+                            className="text-left justify-start h-auto py-3 px-4 hover:bg-primary/10 hover:border-primary/50 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/20"
                             onClick={() => handleSendMessage(prompt)}
                         >
                             {prompt}
@@ -233,16 +233,16 @@ const Index = () => {
           <div ref={messagesEndRef} />
         </div>
       </main>
-      <footer className="p-4 border-t border-white/10 backdrop-blur-sm bg-background/50 sticky bottom-0">
+      <footer className="p-4 border-t border-white/10 backdrop-blur-md bg-background/30 sticky bottom-0">
         <form onSubmit={onFormSubmit} className="flex gap-4 max-w-4xl mx-auto">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type 'generate image: a cat' or ask anything..."
             disabled={isLoading}
-            className="flex-1 bg-muted border-border focus:ring-2 focus:ring-primary h-12 text-base px-4 rounded-xl"
+            className="flex-1 bg-muted border-border focus:ring-2 focus:ring-primary h-12 text-base px-4 rounded-xl transition-all duration-300 focus:bg-background/70 focus:scale-[1.01]"
           />
-          <Button type="submit" disabled={isLoading} size="icon" className="h-12 w-12 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 hover:scale-110 [&_svg]:size-6">
+          <Button type="submit" disabled={isLoading} size="icon" className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground transition-all duration-300 hover:scale-110 hover:brightness-110 active:scale-105 [&_svg]:size-6">
             {isLoading ? (
               <LoaderCircle className="animate-spin" />
             ) : (
