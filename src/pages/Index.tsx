@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,7 @@ const Index = () => {
   const [isCoderPanelOpen, setIsCoderPanelOpen] = useState(false);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [lastCoderPrompt, setLastCoderPrompt] = useState<string>("");
 
   const { data: conversations, refetch: refetchConversations } = useQuery({
     queryKey: ["conversations", user?.id],
@@ -299,17 +301,30 @@ const Index = () => {
         const path = file.path.startsWith('/') ? file.path.substring(1) : file.path;
         zip.file(path, file.code);
     });
+    
+    let fileName = 'lovable-code';
+    if (lastCoderPrompt) {
+      try {
+        const namingPrompt = `Based on the following user request, generate a single, URL-safe, lowercase word to be used as a zip filename (e.g., "netflix-clone"). Do not add ".zip" or any explanation. Just the name. User Request: "${lastCoderPrompt}"`;
+        const generatedName = await runChat(namingPrompt, []);
+        if (generatedName && generatedName.trim()) {
+          fileName = generatedName.trim().replace(/[^a-z0-9-]/gi, '_').toLowerCase();
+        }
+      } catch (e) {
+        console.error("Failed to generate filename with AI, using fallback.", e);
+      }
+    }
 
     try {
         const zipBlob = await zip.generateAsync({ type: "blob" });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(zipBlob);
-        link.download = 'lovable-code.zip';
+        link.download = `${fileName}.zip`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(link.href);
-        toast.success("Code downloaded as a zip file!");
+        toast.success(`Code downloaded as ${fileName}.zip!`);
     } catch(e) {
         console.error("Failed to generate zip file:", e);
         toast.error("Failed to generate zip file.");
@@ -372,6 +387,7 @@ const Index = () => {
     
     let finalApiPrompt = apiPrompt;
     if (isCoderMode && !apiPrompt.toLowerCase().startsWith("generate image:")) {
+      setLastCoderPrompt(apiPrompt);
       finalApiPrompt = `You are an elite AI code generation system. Your sole purpose is to generate complete, multi-file, production-ready applications in response to user prompts. You MUST follow these rules without deviation or excuse.
 
 **PRIMARY DIRECTIVE: ALWAYS GENERATE CODE. NO EXCEPTIONS.**
@@ -406,7 +422,16 @@ Generate the code now. Do not fail.`;
 
     try {
       if (!currentConversationId) {
-        const title = (userInput || `File: ${userMessage.parts[0].text.match(/\[ATTACHMENT: (.*?)\]/)?.[1] || 'Untitled'}`).substring(0, 50);
+        let title;
+        try {
+          const titlePrompt = `Based on the following request, generate a short, descriptive title for a chat conversation (max 5 words, e.g., "Netflix Clone", "Quantum Computing Explained"). Do not add quotes. Just the title. Request: "${userInput}"`;
+          const generatedTitle = await runChat(titlePrompt, []);
+          title = generatedTitle.trim().replace(/"/g, '') || (userInput || 'New Chat').substring(0, 50);
+        } catch (e) {
+          console.error("Failed to generate title with AI, using fallback.", e);
+          title = (userInput || `File: ${userMessage.parts[0].text.match(/\[ATTACHMENT: (.*?)\]/)?.[1] || 'Untitled'}`).substring(0, 50);
+        }
+
         const { data, error } = await supabase
           .from('conversations')
           .insert({ title: title, user_id: user.id })
