@@ -1,4 +1,3 @@
-
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,13 +10,13 @@ interface CodeBlockProps {
   content: string;
 }
 
-interface ParsedFile {
+export interface ParsedFile {
   path: string;
   language: string;
   code: string;
 }
 
-const parseContent = (content: string): ParsedFile[] => {
+export const parseContent = (content: string): ParsedFile[] => {
     // Splits the content by 'FILE: ' to handle multiple files.
     const filesRaw = content.split('FILE: ').filter(f => f.trim());
 

@@ -13,7 +13,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
-import CodeBlock from "@/components/CodeBlock";
+import CodeBlock, { parseContent } from "@/components/CodeBlock";
 import * as pdfjsLib from 'pdfjs-dist';
 
 const examplePrompts = [
@@ -58,6 +58,7 @@ const Index = () => {
   const queryClient = useQueryClient();
   const [isCoderMode, setIsCoderMode] = useState(false);
   const [coderResponse, setCoderResponse] = useState<string | null>(null);
+  const [isCoderPanelOpen, setIsCoderPanelOpen] = useState(false);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -281,6 +282,7 @@ const Index = () => {
 
   const handleReviewCode = (code: string) => {
     setCoderResponse(code);
+    setIsCoderPanelOpen(true);
   };
 
   const handleSendMessage = async (promptOverride?: string) => {
@@ -349,7 +351,8 @@ const Index = () => {
           // ... button code
           \`\`\`
       2.  Do NOT include any other text, explanation, or conversation.
-      3.  If the request is too complex, vague, or broad to be broken down into specific files (e.g., "build a social media app" or "clone Facebook"), respond with a clear, helpful message inside a single markdown code block explaining that the request is too broad and suggest breaking it down into smaller, actionable steps. Do not attempt to generate code for such requests. Start this message with "NOTE:".
+      3.  For large or complex requests (e.g., "build a social media app"), break down the problem into smaller, logical modules. Start by implementing the most fundamental parts first. For example, for a social media app, you might start with components for a Post, a Feed, and a PostInput form. Always aim to provide runnable code for the modules you choose to implement.
+      4.  If a request is extremely vague, you can provide a foundational set of files as a starting point. Do not refuse to generate code. Always attempt to provide a helpful, coded starting point.
 
       Request: "${apiPrompt}"`;
     }
@@ -405,6 +408,7 @@ const Index = () => {
         
         if (isCoderMode) {
           setCoderResponse(response);
+          setIsCoderPanelOpen(true);
           const modelMessage: Message = { role: "model", parts: [{ text: "I have generated the code in the side panel for you." }], code: response };
           setMessages((prev) => [...prev, modelMessage]);
            await supabase.from('messages').insert({
@@ -569,12 +573,12 @@ const Index = () => {
               </form>
             </div>
           </footer>
-           <Sheet open={!!coderResponse} onOpenChange={(isOpen) => !isOpen && setCoderResponse(null)}>
+           <Sheet open={isCoderPanelOpen} onOpenChange={setIsCoderPanelOpen}>
             <SheetContent side="right" className="w-full md:w-2/3 lg:w-1/2 xl:w-1/2 p-0 flex flex-col bg-background/80 backdrop-blur-xl border-l-border">
               <SheetHeader className="p-6 pb-4">
                 <SheetTitle>Coder Mode Output</SheetTitle>
                 <SheetDescription>
-                  The AI has generated the following code. You can review and copy it.
+                  Review the generated code. Use the copy buttons to grab the code.
                 </SheetDescription>
               </SheetHeader>
               <div className="flex-1 overflow-y-auto px-6 pb-6">
@@ -584,13 +588,22 @@ const Index = () => {
                 <Button
                   onClick={() => {
                     if (coderResponse) {
-                      navigator.clipboard.writeText(coderResponse);
-                      toast.success("Copied to clipboard!");
+                      const files = parseContent(coderResponse);
+                      // Check if the response was code files or just a note
+                      if (files.length > 0 && files[0].path !== 'Response' && !files[0].path.startsWith('NOTE:')) {
+                        const allCode = files.map(file => `/* FILE: ${file.path} */\n\n${file.code}`).join('\n\n');
+                        navigator.clipboard.writeText(allCode);
+                        toast.success("Copied all code blocks to clipboard!");
+                      } else {
+                        // This handles non-code responses or single unformatted blocks
+                        navigator.clipboard.writeText(coderResponse.replace(/```/g, ''));
+                        toast.success("Copied response to clipboard!");
+                      }
                     }
                   }}
                   className="w-full"
                 >
-                  <Copy className="mr-2 h-4 w-4" /> Copy Code
+                  <Copy className="mr-2 h-4 w-4" /> Copy All Code
                 </Button>
               </SheetFooter>
             </SheetContent>
