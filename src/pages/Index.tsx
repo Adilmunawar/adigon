@@ -132,8 +132,7 @@ const Index = () => {
         role: msg.role as 'user' | 'model',
         parts: msg.parts as { text: string }[],
         imageUrl: msg.image_url ?? undefined,
-        // Note: 'code' is not persisted in the database in this implementation
-        // so it will be undefined for reloaded messages.
+        code: msg.code ?? undefined,
       }));
       setMessages(formattedMessages);
     }
@@ -215,8 +214,7 @@ const Index = () => {
             role: msg.role as 'user' | 'model',
             parts: msg.parts as { text: string }[],
             imageUrl: msg.image_url ?? undefined,
-            // Note: 'code' is not persisted in the database in this implementation
-            // so it will be undefined for reloaded messages.
+            code: msg.code ?? undefined,
           }));
           setMessages(formattedMessages);
         }
@@ -411,6 +409,7 @@ Generate the code now. Do not fail.`;
             role: 'model',
             parts: modelMessage.parts,
             image_url: modelMessage.imageUrl,
+            code: modelMessage.code ?? null,
         });
 
       } else {
@@ -429,7 +428,7 @@ Generate the code now. Do not fail.`;
             conversation_id: currentConversationId,
             role: 'model',
             parts: modelMessage.parts,
-            // 'code' property is not saved to DB
+            code: modelMessage.code ?? null,
           });
         } else {
           const modelMessage: Message = { role: "model", parts: [{ text: response }] };
@@ -438,6 +437,7 @@ Generate the code now. Do not fail.`;
               conversation_id: currentConversationId,
               role: 'model',
               parts: modelMessage.parts,
+              code: modelMessage.code ?? null,
           });
         }
       }
