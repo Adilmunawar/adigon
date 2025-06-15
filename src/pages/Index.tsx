@@ -1,7 +1,8 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, LoaderCircle, Bot, LogOut, Code, Upload, Copy, X, Paperclip } from "lucide-react";
+import { Send, LoaderCircle, Bot, LogOut, Code, Upload, Copy, X, Paperclip, Image, Globe, Sparkles, BrainCircuit } from "lucide-react";
 import ChatMessage, { Message } from "@/components/ChatMessage";
 import { runChat } from "@/lib/gemini";
 import { RunwareService } from "@/lib/runware";
@@ -16,10 +17,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFo
 import CodeBlock from "@/components/CodeBlock";
 
 const examplePrompts = [
-  "generate image: a futuristic city at night",
-  "What is the capital of France?",
-  "Write a short poem about space",
-  "Explain quantum computing in simple terms",
+  { text: "generate image: a futuristic city at night", icon: Image },
+  { text: "What is the capital of France?", icon: Globe },
+  { text: "Write a short poem about space", icon: Sparkles },
+  { text: "Explain quantum computing in simple terms", icon: BrainCircuit },
 ];
 
 const Index = () => {
@@ -406,16 +407,20 @@ const Index = () => {
                     <ThreeScene />
                     <h2 className="text-lg font-semibold text-muted-foreground mb-4 mt-4">Try one of these prompts:</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg mx-auto">
-                        {examplePrompts.map((prompt) => (
+                        {examplePrompts.map((prompt) => {
+                          const Icon = prompt.icon;
+                          return (
                             <Button 
-                                key={prompt} 
+                                key={prompt.text} 
                                 variant="outline" 
-                                className="text-left justify-start h-auto py-3 px-4 hover:bg-primary/10 hover:border-primary/50 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/20"
-                                onClick={() => handleSendMessage(prompt)}
+                                className="group text-left justify-start h-auto py-3 px-4 hover:bg-primary/10 hover:border-primary/50 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/20 flex items-center gap-3"
+                                onClick={() => handleSendMessage(prompt.text)}
                             >
-                                {prompt}
+                                <Icon size={20} className="text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                                <span className="flex-1">{prompt.text}</span>
                             </Button>
-                        ))}
+                          );
+                        })}
                     </div>
                 </div>
               )}
