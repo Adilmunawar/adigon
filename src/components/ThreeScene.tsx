@@ -1,4 +1,3 @@
-
 import React, { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -16,7 +15,7 @@ const AnimatedShape = () => {
   });
 
   return (
-    <mesh ref={meshRef} args={[0.9, 0.25, 256, 32, 3, 4]} scale={1.2}>
+    <mesh ref={meshRef} scale={1.2}>
       <torusKnotGeometry args={[0.9, 0.25, 256, 32, 3, 4]} />
       <meshPhysicalMaterial 
         color="#ffffff"
