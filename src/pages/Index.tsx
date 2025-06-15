@@ -1,15 +1,17 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, LoaderCircle, Bot } from "lucide-react";
+import { Send, LoaderCircle, Bot, LogOut } from "lucide-react";
 import ChatMessage, { Message } from "@/components/ChatMessage";
 import { runChat } from "@/lib/gemini";
 import { RunwareService } from "@/lib/runware";
-import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/sonner";
 import ThreeScene from "@/components/ThreeScene";
 import AppSidebar from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { useAuth } from "@/providers/AuthProvider";
+import { supabase } from "@/integrations/supabase/client";
 
 const examplePrompts = [
   "generate image: a futuristic city at night",
@@ -27,6 +29,8 @@ const Index = () => {
   const [runwareService, setRunwareService] = useState<RunwareService | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [tempApiKey, setTempApiKey] = useState("");
+  const { user, logout } = useAuth();
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
 
   useEffect(() => {
     const storedApiKey = localStorage.getItem("runwareApiKey");
@@ -44,6 +48,49 @@ const Index = () => {
       setRunwareService(null);
     }
   }, [runwareApiKey]);
+
+  useEffect(() => {
+    if (user) {
+      const fetchLatestConversation = async () => {
+        const { data: convoData, error: convoError } = await supabase
+          .from('conversations')
+          .select('id')
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (convoError) {
+          toast.error("Failed to load conversation.");
+          console.error(convoError);
+          return;
+        }
+
+        if (convoData && convoData.length > 0) {
+          const conversationId = convoData[0].id;
+          setActiveConversationId(conversationId);
+          
+          const { data: messagesData, error: messagesError } = await supabase
+            .from('messages')
+            .select('*')
+            .eq('conversation_id', conversationId)
+            .order('created_at', { ascending: true });
+          
+          if(messagesError) {
+            toast.error("Failed to load messages.");
+            console.error(messagesError);
+            return;
+          }
+
+          const formattedMessages = messagesData.map(msg => ({
+            role: msg.role as 'user' | 'model',
+            parts: msg.parts as { text: string }[],
+            imageUrl: msg.image_url ?? undefined
+          }));
+          setMessages(formattedMessages);
+        }
+      };
+      fetchLatestConversation();
+    }
+  }, [user]);
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -66,12 +113,13 @@ const Index = () => {
   
   const handleNewChat = () => {
     setMessages([]);
+    setActiveConversationId(null);
     toast.info("New chat started!");
   };
 
   const handleSendMessage = async (promptOverride?: string) => {
     const messageToSend = promptOverride || input;
-    if (!messageToSend.trim() || isLoading) return;
+    if (!messageToSend.trim() || isLoading || !user) return;
 
     const userMessage: Message = { role: "user", parts: [{ text: messageToSend }] };
     setMessages((prev) => [...prev, userMessage]);
@@ -82,7 +130,27 @@ const Index = () => {
     
     setIsLoading(true);
 
+    let currentConversationId = activeConversationId;
+
     try {
+      if (!currentConversationId) {
+        const { data, error } = await supabase
+          .from('conversations')
+          .insert({ title: messageToSend.substring(0, 50), user_id: user.id })
+          .select('id')
+          .single();
+        
+        if (error) throw error;
+        currentConversationId = data.id;
+        setActiveConversationId(data.id);
+      }
+      
+      await supabase.from('messages').insert({
+        conversation_id: currentConversationId,
+        role: 'user',
+        parts: userMessage.parts,
+      });
+
       if (messageToSend.toLowerCase().startsWith("generate image:")) {
         const prompt = messageToSend.substring("generate image:".length).trim();
         if (!runwareService || !runwareService.isConnected()) {
@@ -94,6 +162,12 @@ const Index = () => {
         const result = await runwareService.generateImage({ positivePrompt: prompt });
         const modelMessage: Message = { role: 'model', parts: [{ text: `Here is the image for: "${prompt}"` }], imageUrl: result.imageURL };
         setMessages((prev) => [...prev, modelMessage]);
+        await supabase.from('messages').insert({
+            conversation_id: currentConversationId,
+            role: 'model',
+            parts: modelMessage.parts,
+            image_url: modelMessage.imageUrl,
+        });
 
       } else {
         const history = messages.map(msg => ({
@@ -103,9 +177,14 @@ const Index = () => {
         const response = await runChat(messageToSend, history);
         const modelMessage: Message = { role: "model", parts: [{ text: response }] };
         setMessages((prev) => [...prev, modelMessage]);
+        await supabase.from('messages').insert({
+            conversation_id: currentConversationId,
+            role: 'model',
+            parts: modelMessage.parts,
+        });
       }
     } catch (error) {
-      console.error("Failed to get response", error);
+      console.error("Failed to get response or save message", error);
        const errorMessage: Message = { role: "model", parts: [{ text: "Oops! Something went wrong. Please try again." }] };
        setMessages((prev) => [...prev, errorMessage]);
     } finally {
@@ -132,6 +211,16 @@ const Index = () => {
         <div className="flex flex-col flex-1 overflow-hidden">
           <main className="flex-1 overflow-y-auto p-6 relative">
             <SidebarTrigger className="absolute top-4 left-6" />
+            {user && (
+              <div className="absolute top-4 right-6 flex items-center gap-4">
+                <span className="text-sm text-muted-foreground hidden sm:inline">
+                  {user.email}
+                </span>
+                <Button variant="outline" size="icon" onClick={logout} className="rounded-full" aria-label="Logout">
+                  <LogOut size={16} />
+                </Button>
+              </div>
+            )}
             <div className="max-w-4xl mx-auto pt-8">
               {messages.map((msg, index) => (
                 <ChatMessage key={index} message={msg} />
@@ -176,10 +265,10 @@ const Index = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Type 'generate image: a cat' or ask anything..."
-                disabled={isLoading}
+                disabled={isLoading || !user}
                 className="flex-1 bg-muted border-border focus:ring-2 focus:ring-primary h-12 text-base px-4 rounded-xl transition-all duration-300 focus:bg-background/70 focus:scale-[1.01]"
               />
-              <Button type="submit" disabled={isLoading} size="icon" className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground transition-all duration-300 hover:scale-110 hover:brightness-110 active:scale-105 [&_svg]:size-6">
+              <Button type="submit" disabled={isLoading || !user} size="icon" className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground transition-all duration-300 hover:scale-110 hover:brightness-110 active:scale-105 [&_svg]:size-6">
                 {isLoading ? (
                   <LoaderCircle className="animate-spin" />
                 ) : (
