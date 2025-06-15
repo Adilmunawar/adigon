@@ -132,7 +132,7 @@ const Index = () => {
         role: msg.role as 'user' | 'model',
         parts: msg.parts as { text: string }[],
         imageUrl: msg.image_url ?? undefined,
-        code: (msg as any).code ?? undefined,
+        code: msg.code ?? undefined,
       }));
       setMessages(formattedMessages);
     }
@@ -214,7 +214,7 @@ const Index = () => {
             role: msg.role as 'user' | 'model',
             parts: msg.parts as { text: string }[],
             imageUrl: msg.image_url ?? undefined,
-            code: (msg as any).code ?? undefined,
+            code: msg.code ?? undefined,
           }));
           setMessages(formattedMessages);
         }

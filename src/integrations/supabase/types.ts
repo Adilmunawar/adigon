@@ -32,6 +32,7 @@ export type Database = {
       }
       messages: {
         Row: {
+          code: string | null
           conversation_id: string
           created_at: string
           id: string
@@ -40,6 +41,7 @@ export type Database = {
           role: string
         }
         Insert: {
+          code?: string | null
           conversation_id: string
           created_at?: string
           id?: string
@@ -48,6 +50,7 @@ export type Database = {
           role: string
         }
         Update: {
+          code?: string | null
           conversation_id?: string
           created_at?: string
           id?: string
