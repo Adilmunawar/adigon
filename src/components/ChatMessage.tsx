@@ -3,7 +3,10 @@ import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Bot, User, Copy, Code, Paperclip, Speaker, VolumeX } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
-import CodeBlock from "./CodeBlock";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Button } from "./ui/button";
 import {
   Accordion,
@@ -126,70 +129,99 @@ const ChatMessage = ({ message, onReviewCode }: ChatMessageProps) => {
     };
   }, []);
 
+  const MarkdownComponents = {
+    h1: ({node, ...props}) => <h1 className="text-2xl font-bold my-4" {...props} />,
+    h2: ({node, ...props}) => <h2 className="text-xl font-semibold my-3" {...props} />,
+    h3: ({node, ...props}) => <h3 className="text-lg font-semibold my-2" {...props} />,
+    p: ({node, ...props}) => <p className="mb-4 last:mb-0" {...props} />,
+    ul: ({node, ...props}) => <ul className="list-disc list-inside mb-4 pl-4" {...props} />,
+    ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-4 pl-4" {...props} />,
+    li: ({node, ...props}) => <li className="mb-2" {...props} />,
+    a: ({node, ...props}) => <a className="text-primary underline hover:opacity-80" target="_blank" rel="noopener noreferrer" {...props} />,
+    code({node, inline, className, children, ...props}) {
+      const match = /language-(\w+)/.exec(className || '')
+      if (inline) {
+        return <code className="bg-secondary text-secondary-foreground px-1 py-0.5 rounded-sm text-sm font-mono" {...props}>{children}</code>
+      }
+      return (
+        <div className="my-4 rounded-md overflow-hidden">
+          <SyntaxHighlighter
+              style={vscDarkPlus}
+              language={match ? match[1] : undefined}
+              PreTag="div"
+              {...props}
+          >
+              {String(children).replace(/\n$/, '')}
+          </SyntaxHighlighter>
+        </div>
+      )
+    }
+  };
+
   return (
     <div
       className={cn(
-        "group flex animate-fade-in-up items-start gap-4 py-4",
+        "group flex animate-fade-in-up items-start gap-3 md:gap-4 py-4",
         isUser && "justify-end"
       )}
     >
       {!isUser && (
-        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary ring-2 ring-primary/40">
+        <div className="flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary ring-2 ring-primary/40">
           <Bot size={24} />
         </div>
       )}
-      <div
-        className={cn(
-          "max-w-xl rounded-2xl px-5 py-3 text-base shadow-lg transition-all duration-300 group-hover:shadow-primary/20",
-          isUser
-            ? "bg-gradient-to-br from-primary to-accent text-primary-foreground"
-            : "bg-muted"
-        )}
-      >
-        {isUser ? (
-          message.parts.map((part, index) => (
-            <UserMessageContent key={index} text={part.text} />
-          ))
-        ) : (
-          (() => {
-            if (messageText.includes("```")) {
-              return <CodeBlock content={messageText} />;
-            }
-            return <p className="leading-relaxed whitespace-pre-wrap">{messageText}</p>;
-          })()
-        )}
-        {message.imageUrl && (
-            <img src={message.imageUrl} alt="Generated content" className="mt-3 rounded-xl max-w-full h-auto" />
-        )}
-        {!isUser && message.code && onReviewCode && (
-          <div className="mt-3 border-t pt-3">
-            <Button variant="outline" size="sm" onClick={() => onReviewCode(message.code!)} className="w-full">
-              <Code className="mr-2 h-4 w-4" />
-              Review Code
-            </Button>
-          </div>
+      <div className={cn("flex flex-col w-full max-w-xl", isUser ? "items-end" : "items-start")}>
+        <div
+          className={cn(
+            "rounded-2xl px-4 md:px-5 py-3 text-base shadow-lg transition-all duration-300 group-hover:shadow-primary/20",
+            isUser
+              ? "bg-gradient-to-br from-primary to-accent text-primary-foreground"
+              : "bg-muted"
+          )}
+        >
+          {isUser ? (
+            message.parts.map((part, index) => (
+              <UserMessageContent key={index} text={part.text} />
+            ))
+          ) : (
+            <ReactMarkdown components={MarkdownComponents} remarkPlugins={[remarkGfm]}>
+              {messageText}
+            </ReactMarkdown>
+          )}
+          {message.imageUrl && (
+              <img src={message.imageUrl} alt="Generated content" className="mt-3 rounded-xl max-w-full h-auto" />
+          )}
+          {!isUser && message.code && onReviewCode && (
+            <div className="mt-3 border-t pt-3">
+              <Button variant="outline" size="sm" onClick={() => onReviewCode(message.code!)} className="w-full">
+                <Code className="mr-2 h-4 w-4" />
+                Review Code
+              </Button>
+            </div>
+          )}
+        </div>
+        {!isUser && (
+           <div className="flex gap-1 mt-2 self-start opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+             <button
+                onClick={handleCopy}
+                className="p-1.5 rounded-full text-muted-foreground hover:bg-accent hover:text-accent-foreground focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring"
+                aria-label="Copy message"
+              >
+                <Copy size={16} />
+              </button>
+               <button
+                onClick={handleSpeak}
+                className="p-1.5 rounded-full text-muted-foreground hover:bg-accent hover:text-accent-foreground focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring"
+                aria-label={isSpeaking ? "Stop speaking" : "Speak message"}
+              >
+                {isSpeaking ? <VolumeX size={16} /> : <Speaker size={16} />}
+              </button>
+           </div>
         )}
       </div>
-      {isUser ? (
-        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-muted flex items-center justify-center ring-2 ring-border">
+      {isUser && (
+        <div className="flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full bg-muted flex items-center justify-center ring-2 ring-border">
           <User size={24} />
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2 self-center">
-            <button
-              onClick={handleCopy}
-              className="p-1.5 rounded-full text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent hover:text-accent-foreground focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring"
-              aria-label="Copy message"
-            >
-              <Copy size={16} />
-            </button>
-             <button
-              onClick={handleSpeak}
-              className="p-1.5 rounded-full text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent hover:text-accent-foreground focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring"
-              aria-label={isSpeaking ? "Stop speaking" : "Speak message"}
-            >
-              {isSpeaking ? <VolumeX size={16} /> : <Speaker size={16} />}
-            </button>
         </div>
       )}
     </div>
