@@ -35,7 +35,22 @@ const safetySettings = [
   },
 ];
 
-export const runChat = async (prompt: string, history: { role: string, parts: { text: string }[] }[]) => {
+const fileToGenerativePart = async (file: File) => {
+    const base64EncodedData = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = err => reject(err);
+        reader.readAsDataURL(file);
+    });
+    return {
+        inlineData: {
+            data: base64EncodedData,
+            mimeType: file.type,
+        },
+    };
+};
+
+export const runChat = async (prompt: string, history: { role: string, parts: { text: string }[] }[], file?: File) => {
   try {
     // The Gemini API requires the history to start with a user message.
     // If the history starts with a model message (like our initial greeting), we skip it.
@@ -49,8 +64,15 @@ export const runChat = async (prompt: string, history: { role: string, parts: { 
       history: validHistory,
     });
     
-    const result = await chatSession.sendMessage(prompt);
-    return result.response.text();
+    if (file && file.type.startsWith("image/")) {
+        const imagePart = await fileToGenerativePart(file);
+        const promptForImage = prompt || "What's in this image?";
+        const result = await chatSession.sendMessage([promptForImage, imagePart]);
+        return result.response.text();
+    } else {
+        const result = await chatSession.sendMessage(prompt);
+        return result.response.text();
+    }
   } catch (error) {
     console.error("Error running chat:", error);
     return "Sorry, I encountered an error. Please try again.";

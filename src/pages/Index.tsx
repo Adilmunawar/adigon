@@ -240,23 +240,39 @@ const Index = () => {
 
     setIsLoading(true);
 
-    let messageText = userInput;
+    let userMessage: Message;
+    let apiPrompt = userInput;
+    let fileForApi: File | undefined = undefined;
 
     if (attachedFile) {
-      try {
-        const fileContent = await attachedFile.text();
-        // Using a structured format for ChatMessage to parse
-        messageText = `[ATTACHMENT: ${attachedFile.name}]\n${fileContent}\n[/ATTACHMENT]\n\n${userInput}`;
-      } catch (error) {
-        console.error("Error reading file:", error);
-        toast.error("Could not read the attached file. It might not be a plain text file.");
+      if (attachedFile.type.startsWith("image/")) {
+        const objectUrl = URL.createObjectURL(attachedFile);
+        userMessage = { role: "user", parts: [{ text: userInput }], imageUrl: objectUrl };
+        fileForApi = attachedFile;
+        // apiPrompt is just userInput for images, file is passed separately
+      } else if (attachedFile.type.startsWith('text/') || /\.(txt|md|json|js|ts|tsx|css|html)$/.test(attachedFile.name)) {
+        try {
+          const fileContent = await attachedFile.text();
+          const messageText = `[ATTACHMENT: ${attachedFile.name}]\n${fileContent}\n[/ATTACHMENT]\n\n${userInput}`;
+          userMessage = { role: "user", parts: [{ text: messageText }] };
+          apiPrompt = messageText; // For text files, the full text is the prompt
+        } catch (error) {
+          console.error("Error reading file:", error);
+          toast.error("Could not read the attached file. It might not be a plain text file.");
+          setIsLoading(false);
+          setAttachedFile(null);
+          return;
+        }
+      } else {
+        toast.error(`File type "${attachedFile.type}" is not supported yet. Only images and text files are currently supported.`);
         setIsLoading(false);
         setAttachedFile(null);
         return;
       }
+    } else {
+      userMessage = { role: "user", parts: [{ text: userInput }] };
     }
-
-    const userMessage: Message = { role: "user", parts: [{ text: messageText }] };
+    
     setMessages((prev) => [...prev, userMessage]);
     
     if (!promptOverride) {
@@ -264,9 +280,9 @@ const Index = () => {
     }
     setAttachedFile(null); // Clear file after processing
     
-    let apiPrompt = messageText;
-    if (isCoderMode && !messageText.toLowerCase().startsWith("generate image:")) {
-      apiPrompt = `You are a world-class software engineer specializing in creating production-ready applications. Your task is to provide a complete, well-documented, and performant code solution for the following request. Do not just give examples, provide full, production-ready code. Respond ONLY with the code. For each file, prefix it with "FILE: " followed by the full path, then a newline, and then the markdown code block. For example:\nFILE: src/components/Button.tsx\n\`\`\`tsx\n// ... button code\n\`\`\`\nDo not include any other text or explanation. Request: "${messageText}"`;
+    let finalApiPrompt = apiPrompt;
+    if (isCoderMode && !apiPrompt.toLowerCase().startsWith("generate image:")) {
+      finalApiPrompt = `You are a world-class software engineer specializing in creating production-ready applications. Your task is to provide a complete, well-documented, and performant code solution for the following request. Do not just give examples, provide full, production-ready code. Respond ONLY with the code. For each file, prefix it with "FILE: " followed by the full path, then a newline, and then the markdown code block. For example:\nFILE: src/components/Button.tsx\n\`\`\`tsx\n// ... button code\n\`\`\`\nDo not include any other text or explanation. Request: "${apiPrompt}"`;
     }
 
     let currentConversationId = activeConversationId;
@@ -290,10 +306,11 @@ const Index = () => {
         conversation_id: currentConversationId,
         role: 'user',
         parts: userMessage.parts,
+        image_url: userMessage.imageUrl ?? null
       });
 
-      if (messageText.toLowerCase().startsWith("generate image:")) {
-        const prompt = messageText.substring("generate image:".length).trim();
+      if (apiPrompt.toLowerCase().startsWith("generate image:")) {
+        const prompt = apiPrompt.substring("generate image:".length).trim();
         if (!runwareService || !runwareService.isConnected()) {
            const errorMessage: Message = { role: "model", parts: [{ text: "Please set your Runware API key in settings to generate images." }] };
            setMessages((prev) => [...prev, errorMessage]);
@@ -315,7 +332,7 @@ const Index = () => {
           role: msg.role,
           parts: msg.parts,
         }));
-        const response = await runChat(apiPrompt, history);
+        const response = await runChat(finalApiPrompt, history, fileForApi);
         
         if (isCoderMode) {
           setCoderResponse(response);
