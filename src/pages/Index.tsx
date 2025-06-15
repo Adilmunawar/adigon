@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, LoaderCircle, Settings } from "lucide-react";
+import { Send, LoaderCircle, Settings, Bot } from "lucide-react";
 import ChatMessage, { Message } from "@/components/ChatMessage";
 import { runChat } from "@/lib/gemini";
 import { RunwareService } from "@/lib/runware";
@@ -104,19 +104,21 @@ const Index = () => {
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground">
-      <header className="p-4 border-b flex items-center justify-center relative">
-        <h1 className="text-xl font-semibold">AdiGon</h1>
+      <header className="p-4 border-b border-white/10 flex items-center justify-between backdrop-blur-sm bg-background/50 sticky top-0 z-10">
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 text-transparent bg-clip-text">
+          AdiGon
+        </h1>
         <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
           <DialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="absolute right-4 top-1/2 -translate-y-1/2">
+            <Button variant="ghost" size="icon">
               <Settings size={20} />
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="bg-background">
             <DialogHeader>
               <DialogTitle>Settings</DialogTitle>
               <DialogDescription>
-                Manage your API keys here. You can get your Runware API key from the {" "}
+                Manage your API keys here. You can get your Runware API key from the{" "}
                 <a href="https://runware.ai/" target="_blank" rel="noopener noreferrer" className="underline">Runware dashboard</a>.
               </DialogDescription>
             </DialogHeader>
@@ -135,22 +137,23 @@ const Index = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={handleSaveApiKey}>Save changes</Button>
+              <Button onClick={handleSaveApiKey} className="bg-primary hover:bg-primary/90">Save changes</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </header>
-      <main className="flex-1 overflow-y-auto p-4">
+      <main className="flex-1 overflow-y-auto p-6">
         <div className="max-w-4xl mx-auto">
           {messages.map((msg, index) => (
             <ChatMessage key={index} message={msg} />
           ))}
           {isLoading && (
-            <div className="flex items-start gap-3 py-4">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
-                <LoaderCircle size={20} className="animate-spin" />
+            <div className="flex items-start gap-4 py-4 animate-fade-in-up">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary ring-2 ring-primary/40">
+                <Bot size={24} />
               </div>
-              <div className="max-w-md rounded-xl px-4 py-3 text-sm bg-muted">
+              <div className="max-w-md rounded-2xl px-5 py-3 text-base bg-muted shadow-md flex items-center">
+                <LoaderCircle size={20} className="animate-spin mr-3" />
                 <p>Thinking...</p>
               </div>
             </div>
@@ -158,20 +161,20 @@ const Index = () => {
           <div ref={messagesEndRef} />
         </div>
       </main>
-      <footer className="p-4 border-t">
-        <form onSubmit={handleSendMessage} className="flex gap-2 max-w-4xl mx-auto">
+      <footer className="p-4 border-t border-white/10 backdrop-blur-sm bg-background/50 sticky bottom-0">
+        <form onSubmit={handleSendMessage} className="flex gap-4 max-w-4xl mx-auto">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type 'generate image: a cat' or ask anything..."
             disabled={isLoading}
-            className="flex-1"
+            className="flex-1 bg-muted border-border focus:ring-2 focus:ring-primary h-12 text-base px-4 rounded-xl"
           />
-          <Button type="submit" disabled={isLoading}>
+          <Button type="submit" disabled={isLoading} size="icon" className="h-12 w-12 rounded-xl bg-primary hover:bg-primary/90 transition-all duration-300 hover:scale-110 [&_svg]:size-6">
             {isLoading ? (
-              <LoaderCircle size={20} className="animate-spin" />
+              <LoaderCircle className="animate-spin" />
             ) : (
-              <Send size={20} />
+              <Send />
             )}
             <span className="sr-only">Send</span>
           </Button>
