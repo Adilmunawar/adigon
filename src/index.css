@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -49,9 +48,6 @@
 
   body {
     @apply bg-background text-foreground;
-    background-image: radial-gradient(circle at 15% 25%, hsl(var(--primary) / 0.1), transparent 40%), radial-gradient(circle at 85% 75%, hsl(var(--accent) / 0.1), transparent 40%);
-    background-size: 200% 200%;
-    animation: background-pan 25s ease infinite;
   }
 }
 
