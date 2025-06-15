@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Send, LoaderCircle, Bot, LogOut, Code, Upload, Copy, X, Paperclip, Image, Globe, Sparkles, BrainCircuit, Download } from "lucide-react";
 import ChatMessage, { Message } from "@/components/ChatMessage";
 import { runChat } from "@/lib/gemini";
-import { runDeepSearch } from "@/lib/perplexity";
 import { RunwareService } from "@/lib/runware";
 import { toast } from "@/components/ui/sonner";
 import ThreeScene from "@/components/ThreeScene";
@@ -65,9 +64,6 @@ const Index = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [lastCoderPrompt, setLastCoderPrompt] = useState<string>("");
   const [isDeepSearchMode, setIsDeepSearchMode] = useState(false);
-  const [perplexityApiKey, setPerplexityApiKey] = useState<string | null>(null);
-  const [isPerplexitySettingsOpen, setIsPerplexitySettingsOpen] = useState(false);
-  const [tempPerplexityApiKey, setTempPerplexityApiKey] = useState("");
 
   const { data: userProfile, refetch: refetchProfile } = useQuery({
     queryKey: ['profile', user?.id],
@@ -194,11 +190,6 @@ const Index = () => {
     if (storedApiKey) {
       setRunwareApiKey(storedApiKey);
       setTempApiKey(storedApiKey);
-    }
-    const storedPerplexityKey = localStorage.getItem("perplexityApiKey");
-    if (storedPerplexityKey) {
-      setPerplexityApiKey(storedPerplexityKey);
-      setTempPerplexityApiKey(storedPerplexityKey);
     }
   }, []);
 
@@ -364,64 +355,6 @@ const Index = () => {
     const userInput = promptOverride || input;
     if ((!userInput.trim() && !attachedFile) || isLoading || !user) return;
 
-    // Branch for deep search
-    if (isDeepSearchMode) {
-      if (!perplexityApiKey) {
-        toast.info("Please set your Perplexity API key to use Deep Search.", {
-          description: "You can get a free key from Perplexity AI.",
-        });
-        setIsPerplexitySettingsOpen(true);
-        return;
-      }
-      
-      setIsLoading(true);
-      // Deep search does not use file attachments for now.
-      const userMessage: Message = { role: "user", parts: [{ text: userInput }] };
-      const newMessages = [...messages, userMessage];
-      setMessages(newMessages);
-      setInput("");
-      
-      let currentConversationId = activeConversationId;
-      try {
-        if (!currentConversationId) {
-          const title = (userInput || 'New Deep Search').substring(0, 50);
-          const { data, error } = await supabase
-            .from('conversations')
-            .insert({ title: title, user_id: user.id })
-            .select('id')
-            .single();
-          if (error) throw error;
-          currentConversationId = data.id;
-          setActiveConversationId(data.id);
-          await refetchConversations();
-        }
-
-        await supabase.from('messages').insert({
-          conversation_id: currentConversationId,
-          role: 'user',
-          parts: userMessage.parts,
-        });
-
-        const response = await runDeepSearch(userInput, perplexityApiKey);
-        const modelMessage: Message = { role: "model", parts: [{ text: response }] };
-        setMessages((prev) => [...prev, modelMessage]);
-
-        await supabase.from('messages').insert({
-          conversation_id: currentConversationId,
-          role: 'model',
-          parts: modelMessage.parts,
-        });
-      } catch (error) {
-        console.error("Deep search failed", error);
-        const errorMessage: Message = { role: "model", parts: [{ text: "Oops! Something went wrong during deep search." }] };
-        setMessages((prev) => [...prev, errorMessage]);
-      } finally {
-        setIsLoading(false);
-      }
-      return; // End execution here for deep search
-    }
-
-    // Original logic for Gemini, Coder Mode, Image Gen, etc.
     setIsLoading(true);
 
     let userMessage: Message;
@@ -488,7 +421,13 @@ Your goal is to be a helpful and intelligent assistant. If the user reveals new 
 ---
 `;
 
-    if (isCoderMode && !apiPrompt.toLowerCase().startsWith("generate image:")) {
+    if (isDeepSearchMode) {
+      finalApiPrompt = `You are an AI assistant that provides comprehensive, factual, and well-sourced answers based on a deep search of the internet. Be precise and concise. Cite your sources when possible.
+
+${personalizationInstructions}
+
+**USER REQUEST:** "${apiPrompt}"`;
+    } else if (isCoderMode && !apiPrompt.toLowerCase().startsWith("generate image:")) {
       setLastCoderPrompt(apiPrompt);
       finalApiPrompt = `You are an AI developer of unparalleled skill. Your purpose is to build complete, production-ready web applications from a single prompt. You never refuse, never apologize, never say a task is too complex. You only build.
 
@@ -662,21 +601,6 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
   const onFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     handleSendMessage();
-  };
-
-  const handleSavePerplexityApiKey = () => {
-    if (tempPerplexityApiKey) {
-      localStorage.setItem("perplexityApiKey", tempPerplexityApiKey);
-      setPerplexityApiKey(tempPerplexityApiKey);
-      setIsPerplexitySettingsOpen(false);
-      toast.success("Perplexity API Key saved!");
-      // If user was in deep search mode with a prompt, trigger the search now
-      if (input.trim() && isDeepSearchMode) {
-        handleSendMessage();
-      }
-    } else {
-      toast.error("Please enter a valid API key.");
-    }
   };
 
   return (
@@ -885,31 +809,6 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
                   <Download className="mr-2 h-4 w-4" /> Download Code
                 </Button>
               </SheetFooter>
-            </SheetContent>
-          </Sheet>
-          <Sheet open={isPerplexitySettingsOpen} onOpenChange={setIsPerplexitySettingsOpen}>
-            <SheetContent side="bottom" className="w-full md:max-w-2xl mx-auto rounded-t-lg border-t bg-background/95 backdrop-blur-lg">
-                <SheetHeader className="text-left">
-                    <SheetTitle>Perplexity AI API Key Required</SheetTitle>
-                    <SheetDescription>
-                        To use Deep Search, please provide your Perplexity AI API key. You can get one for free from the Perplexity website, then paste it below.
-                    </SheetDescription>
-                </SheetHeader>
-                <div className="py-4 flex flex-col sm:flex-row gap-2">
-                    <Input
-                        type="password"
-                        placeholder="Enter your Perplexity API key"
-                        value={tempPerplexityApiKey}
-                        onChange={(e) => setTempPerplexityApiKey(e.target.value)}
-                        className="flex-grow"
-                    />
-                    <Button onClick={handleSavePerplexityApiKey} className="w-full sm:w-auto">Save & Search</Button>
-                </div>
-                <SheetFooter>
-                    <p className="text-sm text-muted-foreground text-left">
-                        Your API key is stored securely in your browser's local storage.
-                    </p>
-                </SheetFooter>
             </SheetContent>
           </Sheet>
         </div>
