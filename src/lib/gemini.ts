@@ -37,10 +37,16 @@ const safetySettings = [
 
 export const runChat = async (prompt: string, history: { role: string, parts: { text: string }[] }[]) => {
   try {
+    // The Gemini API requires the history to start with a user message.
+    // If the history starts with a model message (like our initial greeting), we skip it.
+    const validHistory = (history.length > 0 && history[0].role === 'model')
+      ? history.slice(1)
+      : history;
+      
     const chatSession = model.startChat({
       generationConfig,
       safetySettings,
-      history: history,
+      history: validHistory,
     });
     
     const result = await chatSession.sendMessage(prompt);
