@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { Bot, User, Copy } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
@@ -64,7 +63,6 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
                       style={vscDarkPlus as any}
                       language={match[1]}
                       PreTag="pre"
-                      {...props}
                     >
                       {String(children).replace(/\n$/, '')}
                     </SyntaxHighlighter>
