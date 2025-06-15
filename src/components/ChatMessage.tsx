@@ -1,9 +1,15 @@
 
 import { cn } from "@/lib/utils";
-import { Bot, User, Copy, Code } from "lucide-react";
+import { Bot, User, Copy, Code, Paperclip } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import CodeBlock from "./CodeBlock";
 import { Button } from "./ui/button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 export interface Message {
   role: "user" | "model";
@@ -16,6 +22,36 @@ interface ChatMessageProps {
   message: Message;
   onReviewCode?: (code: string) => void;
 }
+
+const UserMessageContent = ({ text }: { text: string }) => {
+  const attachmentRegex = /\[ATTACHMENT: (.*?)\]\n([\s\S]*?)\n\[\/ATTACHMENT\]\n\n([\s\S]*)/s;
+  const match = text.match(attachmentRegex);
+
+  if (!match) {
+    return <p className="leading-relaxed whitespace-pre-wrap">{text}</p>;
+  }
+
+  const [, fileName, fileContent, userPrompt] = match;
+
+  return (
+    <div className="space-y-3">
+      {userPrompt && <p className="leading-relaxed whitespace-pre-wrap">{userPrompt}</p>}
+      <Accordion type="single" collapsible className="w-full">
+        <AccordionItem value="item-1" className="border-none bg-primary/10 rounded-lg">
+          <AccordionTrigger className="p-3 hover:no-underline justify-start gap-2 text-sm font-semibold">
+            <Paperclip className="h-4 w-4" />
+            <span>Attachment: {fileName}</span>
+          </AccordionTrigger>
+          <AccordionContent className="pt-0 px-2 pb-2">
+             <div className="bg-background/50 rounded-md max-h-60 overflow-y-auto mt-1">
+                <pre className="text-xs font-mono p-3 whitespace-pre-wrap break-words">{fileContent}</pre>
+             </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    </div>
+  );
+};
 
 const ChatMessage = ({ message, onReviewCode }: ChatMessageProps) => {
   const isUser = message.role === "user";
@@ -50,7 +86,7 @@ const ChatMessage = ({ message, onReviewCode }: ChatMessageProps) => {
       >
         {isUser ? (
           message.parts.map((part, index) => (
-            <p key={index} className="leading-relaxed">{part.text}</p>
+            <UserMessageContent key={index} text={part.text} />
           ))
         ) : (
           <CodeBlock content={message.parts.map((part) => part.text).join("")} />

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, LoaderCircle, Bot, LogOut, Code, Upload, Copy } from "lucide-react";
+import { Send, LoaderCircle, Bot, LogOut, Code, Upload, Copy, X, Paperclip } from "lucide-react";
 import ChatMessage, { Message } from "@/components/ChatMessage";
 import { runChat } from "@/lib/gemini";
 import { RunwareService } from "@/lib/runware";
@@ -36,6 +36,7 @@ const Index = () => {
   const queryClient = useQueryClient();
   const [isCoderMode, setIsCoderMode] = useState(false);
   const [coderResponse, setCoderResponse] = useState<string | null>(null);
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: conversations, refetch: refetchConversations } = useQuery({
@@ -211,9 +212,21 @@ const Index = () => {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      console.log("File attached:", file);
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast.error("File is too large. Please use a file smaller than 5MB.");
+        return;
+      }
+      // A simple check to warn about potentially non-text files.
+      if (!file.type.startsWith('text/') && !/\.(txt|md|json|js|ts|tsx|css|html)$/.test(file.name)) {
+        toast.warning("File might not be readable as text, but I'll try my best!");
+      }
+
+      setAttachedFile(file);
       toast.info(`Attached file: ${file.name}`);
-      // Future functionality can be added here to process the file
+    }
+    // Reset input value to allow selecting the same file again
+    if (event.target) {
+      event.target.value = "";
     }
   };
 
@@ -222,30 +235,48 @@ const Index = () => {
   };
 
   const handleSendMessage = async (promptOverride?: string) => {
-    const originalMessage = promptOverride || input;
-    if (!originalMessage.trim() || isLoading || !user) return;
+    const userInput = promptOverride || input;
+    if ((!userInput.trim() && !attachedFile) || isLoading || !user) return;
 
-    const userMessage: Message = { role: "user", parts: [{ text: originalMessage }] };
+    setIsLoading(true);
+
+    let messageText = userInput;
+
+    if (attachedFile) {
+      try {
+        const fileContent = await attachedFile.text();
+        // Using a structured format for ChatMessage to parse
+        messageText = `[ATTACHMENT: ${attachedFile.name}]\n${fileContent}\n[/ATTACHMENT]\n\n${userInput}`;
+      } catch (error) {
+        console.error("Error reading file:", error);
+        toast.error("Could not read the attached file. It might not be a plain text file.");
+        setIsLoading(false);
+        setAttachedFile(null);
+        return;
+      }
+    }
+
+    const userMessage: Message = { role: "user", parts: [{ text: messageText }] };
     setMessages((prev) => [...prev, userMessage]);
     
     if (!promptOverride) {
       setInput("");
     }
+    setAttachedFile(null); // Clear file after processing
     
-    setIsLoading(true);
-
-    let apiPrompt = originalMessage;
-    if (isCoderMode && !originalMessage.toLowerCase().startsWith("generate image:")) {
-      apiPrompt = `You are a world-class software engineer specializing in creating production-ready applications. Your task is to provide a complete, well-documented, and performant code solution for the following request. Do not just give examples, provide full, production-ready code. Respond ONLY with the code. For each file, prefix it with "FILE: " followed by the full path, then a newline, and then the markdown code block. For example:\nFILE: src/components/Button.tsx\n\`\`\`tsx\n// ... button code\n\`\`\`\nDo not include any other text or explanation. Request: "${originalMessage}"`;
+    let apiPrompt = messageText;
+    if (isCoderMode && !messageText.toLowerCase().startsWith("generate image:")) {
+      apiPrompt = `You are a world-class software engineer specializing in creating production-ready applications. Your task is to provide a complete, well-documented, and performant code solution for the following request. Do not just give examples, provide full, production-ready code. Respond ONLY with the code. For each file, prefix it with "FILE: " followed by the full path, then a newline, and then the markdown code block. For example:\nFILE: src/components/Button.tsx\n\`\`\`tsx\n// ... button code\n\`\`\`\nDo not include any other text or explanation. Request: "${messageText}"`;
     }
 
     let currentConversationId = activeConversationId;
 
     try {
       if (!currentConversationId) {
+        const title = (userInput || `File: ${userMessage.parts[0].text.match(/\[ATTACHMENT: (.*?)\]/)?.[1] || 'Untitled'}`).substring(0, 50);
         const { data, error } = await supabase
           .from('conversations')
-          .insert({ title: originalMessage.substring(0, 50), user_id: user.id })
+          .insert({ title: title, user_id: user.id })
           .select('id')
           .single();
         
@@ -261,8 +292,8 @@ const Index = () => {
         parts: userMessage.parts,
       });
 
-      if (originalMessage.toLowerCase().startsWith("generate image:")) {
-        const prompt = originalMessage.substring("generate image:".length).trim();
+      if (messageText.toLowerCase().startsWith("generate image:")) {
+        const prompt = messageText.substring("generate image:".length).trim();
         if (!runwareService || !runwareService.isConnected()) {
            const errorMessage: Message = { role: "model", parts: [{ text: "Please set your Runware API key in settings to generate images." }] };
            setMessages((prev) => [...prev, errorMessage]);
@@ -387,51 +418,65 @@ const Index = () => {
             </div>
           </main>
           <footer className="p-4 border-t border-white/10 bg-background/80 backdrop-blur-sm">
-            <form onSubmit={onFormSubmit} className="flex gap-2 max-w-4xl mx-auto items-center">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                type="button"
-                onClick={handleAttachFileClick}
-                disabled={isLoading || !user}
-                className="h-12 w-12 rounded-xl flex-shrink-0"
-                aria-label="Attach file"
-              >
-                <Upload size={20} />
-              </Button>
-              <Button
-                variant={isCoderMode ? "secondary" : "outline"}
-                size="icon"
-                type="button"
-                onClick={() => setIsCoderMode(!isCoderMode)}
-                disabled={isLoading || !user}
-                className="h-12 w-12 rounded-xl flex-shrink-0"
-                aria-label="Toggle Coder Mode"
-              >
-                <Code size={20} />
-              </Button>
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder={isCoderMode ? "Coder Mode: Describe the file or ask a question..." : "Type 'generate image: a cat' or ask anything..."}
-                disabled={isLoading || !user}
-                className="flex-1 bg-muted border-border focus:ring-2 focus:ring-primary h-12 text-base px-4 rounded-xl transition-all duration-300 focus:bg-background/70 focus:scale-[1.01]"
-              />
-              <Button type="submit" disabled={isLoading || !input.trim() || !user} size="icon" className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground transition-all duration-300 hover:scale-110 hover:brightness-110 active:scale-105 [&_svg]:size-6">
-                {isLoading && messages.length > 0 ? (
-                  <LoaderCircle className="animate-spin" />
-                ) : (
-                  <Send />
-                )}
-                <span className="sr-only">Send</span>
-              </Button>
-            </form>
+            <div className="max-w-4xl mx-auto">
+              {attachedFile && (
+                <div className="mb-2 flex items-center justify-between rounded-lg border bg-muted p-2 text-sm">
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <Paperclip className="h-4 w-4 flex-shrink-0" />
+                    <span className="truncate font-medium">{attachedFile.name}</span>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => setAttachedFile(null)}>
+                    <X size={16} />
+                    <span className="sr-only">Remove file</span>
+                  </Button>
+                </div>
+              )}
+              <form onSubmit={onFormSubmit} className="flex gap-2 items-center">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  type="button"
+                  onClick={handleAttachFileClick}
+                  disabled={isLoading || !user}
+                  className="h-12 w-12 rounded-xl flex-shrink-0"
+                  aria-label="Attach file"
+                >
+                  <Upload size={20} />
+                </Button>
+                <Button
+                  variant={isCoderMode ? "secondary" : "outline"}
+                  size="icon"
+                  type="button"
+                  onClick={() => setIsCoderMode(!isCoderMode)}
+                  disabled={isLoading || !user}
+                  className="h-12 w-12 rounded-xl flex-shrink-0"
+                  aria-label="Toggle Coder Mode"
+                >
+                  <Code size={20} />
+                </Button>
+                <Input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder={isCoderMode ? "Coder Mode: Describe the file or ask a question..." : "Type 'generate image: a cat' or ask anything..."}
+                  disabled={isLoading || !user}
+                  className="flex-1 bg-muted border-border focus:ring-2 focus:ring-primary h-12 text-base px-4 rounded-xl transition-all duration-300 focus:bg-background/70 focus:scale-[1.01]"
+                />
+                <Button type="submit" disabled={isLoading || (!input.trim() && !attachedFile) || !user} size="icon" className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground transition-all duration-300 hover:scale-110 hover:brightness-110 active:scale-105 [&_svg]:size-6">
+                  {isLoading && messages.length > 0 ? (
+                    <LoaderCircle className="animate-spin" />
+                  ) : (
+                    <Send />
+                  )}
+                  <span className="sr-only">Send</span>
+                </Button>
+              </form>
+            </div>
           </footer>
            <Sheet open={!!coderResponse} onOpenChange={(isOpen) => !isOpen && setCoderResponse(null)}>
             <SheetContent side="right" className="w-full md:w-2/3 lg:w-1/2 xl:w-1/2 p-0 flex flex-col">
