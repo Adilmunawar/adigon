@@ -1,5 +1,7 @@
+
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { Bot, User, Copy, Code, Paperclip } from "lucide-react";
+import { Bot, User, Copy, Code, Paperclip, Speaker, VolumeX } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import CodeBlock from "./CodeBlock";
 import { Button } from "./ui/button";
@@ -54,14 +56,75 @@ const UserMessageContent = ({ text }: { text: string }) => {
 
 const ChatMessage = ({ message, onReviewCode }: ChatMessageProps) => {
   const isUser = message.role === "user";
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  
+  const messageText = message.parts.map((part) => part.text).join("\n");
 
   const handleCopy = () => {
-    const messageText = message.parts.map((part) => part.text).join("\n");
     if (messageText) {
       navigator.clipboard.writeText(messageText);
       toast.success("Copied to clipboard!");
     }
   };
+  
+  const handleSpeak = () => {
+    if (!('speechSynthesis' in window)) {
+      toast.error("Text-to-speech is not supported in your browser.");
+      return;
+    }
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    } else {
+      window.speechSynthesis.cancel(); // Cancel any previous speech
+      const utterance = new SpeechSynthesisUtterance(messageText);
+
+      // Attempt to find a female voice
+      const voices = window.speechSynthesis.getVoices();
+      const femaleVoice = voices.find(voice => 
+        voice.lang.startsWith('en') && 
+        (voice.name.toLowerCase().includes('female') || 
+         voice.name.includes('Zira') || 
+         voice.name.includes('Susan') || 
+         voice.name.includes('Google US English') ||
+         voice.name.includes('Samantha'))
+      );
+      
+      if (femaleVoice) {
+        utterance.voice = femaleVoice;
+      }
+
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = (e) => {
+        console.error("Speech synthesis error:", e);
+        toast.error("Couldn't play audio for this message.");
+        setIsSpeaking(false);
+      };
+      
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  // Get voices when they are loaded and cleanup on unmount
+  useEffect(() => {
+    const loadVoices = () => {
+        window.speechSynthesis.getVoices();
+    };
+
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+        loadVoices();
+    }
+    
+    return () => {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.onvoiceschanged = null;
+        }
+    };
+  }, []);
 
   return (
     <div
@@ -89,7 +152,6 @@ const ChatMessage = ({ message, onReviewCode }: ChatMessageProps) => {
           ))
         ) : (
           (() => {
-            const messageText = message.parts.map((part) => part.text).join("");
             if (messageText.includes("```")) {
               return <CodeBlock content={messageText} />;
             }
@@ -113,13 +175,22 @@ const ChatMessage = ({ message, onReviewCode }: ChatMessageProps) => {
           <User size={24} />
         </div>
       ) : (
-        <button
-          onClick={handleCopy}
-          className="self-center p-1.5 rounded-full text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent hover:text-accent-foreground focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring"
-          aria-label="Copy message"
-        >
-          <Copy size={16} />
-        </button>
+        <div className="flex flex-col gap-2 self-center">
+            <button
+              onClick={handleCopy}
+              className="p-1.5 rounded-full text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent hover:text-accent-foreground focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring"
+              aria-label="Copy message"
+            >
+              <Copy size={16} />
+            </button>
+             <button
+              onClick={handleSpeak}
+              className="p-1.5 rounded-full text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent hover:text-accent-foreground focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring"
+              aria-label={isSpeaking ? "Stop speaking" : "Speak message"}
+            >
+              {isSpeaking ? <VolumeX size={16} /> : <Speaker size={16} />}
+            </button>
+        </div>
       )}
     </div>
   );
