@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { Bot, User, Copy, Code, Paperclip } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
@@ -89,7 +88,13 @@ const ChatMessage = ({ message, onReviewCode }: ChatMessageProps) => {
             <UserMessageContent key={index} text={part.text} />
           ))
         ) : (
-          <CodeBlock content={message.parts.map((part) => part.text).join("")} />
+          (() => {
+            const messageText = message.parts.map((part) => part.text).join("");
+            if (messageText.includes("```")) {
+              return <CodeBlock content={messageText} />;
+            }
+            return <p className="leading-relaxed whitespace-pre-wrap">{messageText}</p>;
+          })()
         )}
         {message.imageUrl && (
             <img src={message.imageUrl} alt="Generated content" className="mt-3 rounded-xl max-w-full h-auto" />
