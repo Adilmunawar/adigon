@@ -211,10 +211,10 @@ const Index = () => {
   };
 
   const handleSendMessage = async (promptOverride?: string) => {
-    const messageToSend = promptOverride || input;
-    if (!messageToSend.trim() || isLoading || !user) return;
+    const originalMessage = promptOverride || input;
+    if (!originalMessage.trim() || isLoading || !user) return;
 
-    const userMessage: Message = { role: "user", parts: [{ text: messageToSend }] };
+    const userMessage: Message = { role: "user", parts: [{ text: originalMessage }] };
     setMessages((prev) => [...prev, userMessage]);
     
     if (!promptOverride) {
@@ -223,13 +223,18 @@ const Index = () => {
     
     setIsLoading(true);
 
+    let apiPrompt = originalMessage;
+    if (isCoderMode && !originalMessage.toLowerCase().startsWith("generate image:")) {
+      apiPrompt = `You are an expert software developer. Provide a code example for the following request. Respond ONLY with a markdown code block with the language specified. Do not include any other text. Request: "${originalMessage}"`;
+    }
+
     let currentConversationId = activeConversationId;
 
     try {
       if (!currentConversationId) {
         const { data, error } = await supabase
           .from('conversations')
-          .insert({ title: messageToSend.substring(0, 50), user_id: user.id })
+          .insert({ title: originalMessage.substring(0, 50), user_id: user.id })
           .select('id')
           .single();
         
@@ -245,8 +250,8 @@ const Index = () => {
         parts: userMessage.parts,
       });
 
-      if (messageToSend.toLowerCase().startsWith("generate image:")) {
-        const prompt = messageToSend.substring("generate image:".length).trim();
+      if (originalMessage.toLowerCase().startsWith("generate image:")) {
+        const prompt = originalMessage.substring("generate image:".length).trim();
         if (!runwareService || !runwareService.isConnected()) {
            const errorMessage: Message = { role: "model", parts: [{ text: "Please set your Runware API key in settings to generate images." }] };
            setMessages((prev) => [...prev, errorMessage]);
@@ -268,7 +273,7 @@ const Index = () => {
           role: msg.role,
           parts: msg.parts,
         }));
-        const response = await runChat(messageToSend, history);
+        const response = await runChat(apiPrompt, history);
         const modelMessage: Message = { role: "model", parts: [{ text: response }] };
         setMessages((prev) => [...prev, modelMessage]);
         await supabase.from('messages').insert({
