@@ -472,18 +472,27 @@ Generate the code now. Do not fail. Build something amazing.`;
       if (apiPrompt.toLowerCase().startsWith("generate image:")) {
         const prompt = apiPrompt.substring("generate image:".length).trim();
         
-        const descriptivePrompt = `The user wants to generate an image with the prompt: "${prompt}". Image generation is not directly supported via this API. Instead, create a vivid and detailed text description of what this image would look like.`;
+        const svgPrompt = `You are an expert SVG generator. Based on the user's request, create a complete, single-file SVG code. The SVG should be visually appealing and accurately represent the user's prompt. Do not include any explanation, conversational text, or markdown formatting like \`\`\`svg. Only output the raw <svg>...</svg> code. User Request: "${prompt}"`;
         
         const history = messages.map(msg => ({
           role: msg.role,
           parts: msg.parts,
         }));
 
-        const response = await runChat(descriptivePrompt, history, fileForApi);
+        const svgResponse = await runChat(svgPrompt, history, fileForApi);
+
+        // A simple check to ensure we have some sort of SVG
+        const sanitizedSvg = svgResponse.trim().startsWith('<svg') 
+            ? svgResponse
+            : `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="10">Sorry, I couldn't generate an SVG for that.</text></svg>`;
+        
+        // Use unescape and encodeURIComponent to handle potential UTF-8 characters in the SVG string before base64 encoding
+        const imageUrl = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(sanitizedSvg)))}`;
         
         const modelMessage: Message = { 
           role: "model", 
-          parts: [{ text: `While I can't generate images directly just yet, I've asked Gemini to describe the image you requested:\n\n${response}` }] 
+          parts: [{ text: `Here is the SVG image I generated for you:` }],
+          imageUrl: imageUrl
         };
         
         setMessages((prev) => [...prev, modelMessage]);
@@ -492,7 +501,7 @@ Generate the code now. Do not fail. Build something amazing.`;
             conversation_id: currentConversationId,
             role: 'model',
             parts: modelMessage.parts,
-            image_url: null,
+            image_url: modelMessage.imageUrl,
             code: null,
         });
 
