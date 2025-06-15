@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, LoaderCircle, Bot, LogOut, Code, Upload, Copy, X, Paperclip, Image, Globe, Sparkles, BrainCircuit } from "lucide-react";
+import { Send, LoaderCircle, Bot, LogOut, Code, Upload, Copy, X, Paperclip, Image, Globe, Sparkles, BrainCircuit, Download } from "lucide-react";
 import ChatMessage, { Message } from "@/components/ChatMessage";
 import { runChat } from "@/lib/gemini";
 import { RunwareService } from "@/lib/runware";
@@ -15,6 +15,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import CodeBlock, { parseContent } from "@/components/CodeBlock";
 import * as pdfjsLib from 'pdfjs-dist';
+import JSZip from 'jszip';
 
 const examplePrompts = [
   { text: "generate image: a futuristic city at night", icon: Image },
@@ -281,6 +282,38 @@ const Index = () => {
   const handleReviewCode = (code: string) => {
     setCoderResponse(code);
     setIsCoderPanelOpen(true);
+  };
+
+  const handleDownloadCode = async () => {
+    if (!coderResponse) return;
+
+    const files = parseContent(coderResponse);
+    if (files.length === 0 || (files.length === 1 && files[0].path === 'SYSTEM_MESSAGE')) {
+      toast.error("No code to download.");
+      return;
+    }
+
+    const zip = new JSZip();
+    
+    files.forEach(file => {
+        const path = file.path.startsWith('/') ? file.path.substring(1) : file.path;
+        zip.file(path, file.code);
+    });
+
+    try {
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(zipBlob);
+        link.download = 'lovable-code.zip';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+        toast.success("Code downloaded as a zip file!");
+    } catch(e) {
+        console.error("Failed to generate zip file:", e);
+        toast.error("Failed to generate zip file.");
+    }
   };
 
   const handleSendMessage = async (promptOverride?: string) => {
@@ -601,13 +634,13 @@ Generate the code now. Do not fail.`;
               <div className="flex-1 overflow-y-auto px-6 pb-6">
                 {coderResponse && <CodeBlock content={coderResponse} />}
               </div>
-              <SheetFooter className="p-6 pt-4 bg-background/80 backdrop-blur-sm border-t">
+              <SheetFooter className="p-6 pt-4 bg-background/80 backdrop-blur-sm border-t flex flex-col sm:flex-row gap-2">
                 <Button
                   onClick={() => {
                     if (coderResponse) {
                       const files = parseContent(coderResponse);
                       // Check if the response was code files or just a note
-                      if (files.length > 0 && files[0].path !== 'Response' && !files[0].path.startsWith('NOTE:')) {
+                      if (files.length > 0 && files[0].path !== 'SYSTEM_MESSAGE') {
                         const allCode = files.map(file => `/* FILE: ${file.path} */\n\n${file.code}`).join('\n\n');
                         navigator.clipboard.writeText(allCode);
                         toast.success("Copied all code blocks to clipboard!");
@@ -619,8 +652,15 @@ Generate the code now. Do not fail.`;
                     }
                   }}
                   className="w-full"
+                  variant="outline"
                 >
                   <Copy className="mr-2 h-4 w-4" /> Copy All Code
+                </Button>
+                <Button
+                  onClick={handleDownloadCode}
+                  className="w-full"
+                >
+                  <Download className="mr-2 h-4 w-4" /> Download Code
                 </Button>
               </SheetFooter>
             </SheetContent>
