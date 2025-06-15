@@ -2,7 +2,7 @@
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Copy } from 'lucide-react';
+import { Copy, FileCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/sonner';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -66,10 +66,13 @@ const CodeDisplay = ({ file }: { file: ParsedFile }) => {
     };
     
     return (
-        <div className="relative group rounded-lg border bg-background">
-            <div className="flex justify-between items-center px-4 py-2 border-b text-muted-foreground">
-                <p className="text-sm font-mono">{file.path}</p>
-                <Button variant="ghost" size="icon" onClick={() => handleCopy(file.code)} className="h-8 w-8 opacity-50 group-hover:opacity-100 transition-opacity">
+        <div className="relative group rounded-xl border bg-secondary/30 backdrop-blur-sm shadow-lg overflow-hidden transition-all duration-300 hover:border-primary/50 hover:shadow-primary/20">
+            <div className="flex justify-between items-center px-4 py-2 bg-secondary/50 border-b text-muted-foreground">
+                <div className="flex items-center gap-2">
+                    <FileCode size={16} />
+                    <p className="text-sm font-mono">{file.path}</p>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => handleCopy(file.code)} className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-primary/20 transition-all duration-300 opacity-60 group-hover:opacity-100">
                     <Copy size={16} />
                 </Button>
             </div>

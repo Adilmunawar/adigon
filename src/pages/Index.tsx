@@ -339,7 +339,19 @@ const Index = () => {
     
     let finalApiPrompt = apiPrompt;
     if (isCoderMode && !apiPrompt.toLowerCase().startsWith("generate image:")) {
-      finalApiPrompt = `You are a world-class software engineer specializing in creating production-ready applications. Your task is to provide a complete, well-documented, and performant code solution for the following request. Do not just give examples, provide full, production-ready code. Respond ONLY with the code. For each file, prefix it with "FILE: " followed by the full path, then a newline, and then the markdown code block. For example:\nFILE: src/components/Button.tsx\n\`\`\`tsx\n// ... button code\n\`\`\`\nDo not include any other text or explanation. Request: "${apiPrompt}"`;
+      finalApiPrompt = `You are a world-class software engineer. Your task is to provide complete, production-ready code for the user's request. 
+      
+      **Instructions:**
+      1.  Respond ONLY with code. For each file, prefix it with "FILE: " followed by the full path, then a newline, and then the markdown code block.
+          Example:
+          FILE: src/components/Button.tsx
+          \`\`\`tsx
+          // ... button code
+          \`\`\`
+      2.  Do NOT include any other text, explanation, or conversation.
+      3.  If the request is too complex, vague, or broad to be broken down into specific files (e.g., "build a social media app" or "clone Facebook"), respond with a clear, helpful message inside a single markdown code block explaining that the request is too broad and suggest breaking it down into smaller, actionable steps. Do not attempt to generate code for such requests. Start this message with "NOTE:".
+
+      Request: "${apiPrompt}"`;
     }
 
     let currentConversationId = activeConversationId;
@@ -558,14 +570,14 @@ const Index = () => {
             </div>
           </footer>
            <Sheet open={!!coderResponse} onOpenChange={(isOpen) => !isOpen && setCoderResponse(null)}>
-            <SheetContent side="right" className="w-full md:w-2/3 lg:w-1/2 xl:w-1/2 p-0 flex flex-col">
+            <SheetContent side="right" className="w-full md:w-2/3 lg:w-1/2 xl:w-1/2 p-0 flex flex-col bg-background/80 backdrop-blur-xl border-l-border">
               <SheetHeader className="p-6 pb-4">
                 <SheetTitle>Coder Mode Output</SheetTitle>
                 <SheetDescription>
                   The AI has generated the following code. You can review and copy it.
                 </SheetDescription>
               </SheetHeader>
-              <div className="flex-1 overflow-y-auto px-6">
+              <div className="flex-1 overflow-y-auto px-6 pb-6">
                 {coderResponse && <CodeBlock content={coderResponse} />}
               </div>
               <SheetFooter className="p-6 pt-4 bg-background/80 backdrop-blur-sm border-t">
