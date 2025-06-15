@@ -23,12 +23,33 @@ const examplePrompts = [
   { text: "Explain quantum computing in simple terms", icon: BrainCircuit },
 ];
 
-const loadingMessages = [
-  "Thinking...",
-  "Gathering information...",
-  "Searching the web...",
-  "Compiling response...",
-];
+const loadingMessagesSets = {
+  default: [
+    "Thinking...",
+    "Gathering information...",
+    "Compiling response...",
+  ],
+  image: [
+    "Imagining...",
+    "Generating image...",
+    "Adding final touches...",
+  ],
+  code: [
+    "Analyzing request...",
+    "Coding up a solution...",
+    "Building files...",
+  ],
+  search: [
+    "Deep searching the web...",
+    "Synthesizing information...",
+    "Citing sources...",
+  ],
+  file: [
+    "Analyzing file...",
+    "Extracting information...",
+    "Preparing response...",
+  ],
+};
 
 const extractTextFromPdf = async (file: File): Promise<string> => {
   const arrayBuffer = await file.arrayBuffer();
@@ -47,7 +68,8 @@ const Index = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState(loadingMessages[0]);
+  const [currentLoadingSet, setCurrentLoadingSet] = useState(loadingMessagesSets.default);
+  const [loadingMessage, setLoadingMessage] = useState(loadingMessagesSets.default[0]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [tempApiKey, setTempApiKey] = useState("");
@@ -110,10 +132,10 @@ const Index = () => {
     let interval: NodeJS.Timeout | undefined;
     if (isLoading) {
       let i = 0;
-      setLoadingMessage(loadingMessages[0]); // Reset to first message on new load
+      setLoadingMessage(currentLoadingSet[0]); // Reset to first message on new load
       interval = setInterval(() => {
-        i = (i + 1) % loadingMessages.length;
-        setLoadingMessage(loadingMessages[i]);
+        i = (i + 1) % currentLoadingSet.length;
+        setLoadingMessage(currentLoadingSet[i]);
       }, 2500);
     }
     return () => {
@@ -121,7 +143,7 @@ const Index = () => {
         clearInterval(interval);
       }
     };
-  }, [isLoading]);
+  }, [isLoading, currentLoadingSet]);
 
   useEffect(() => {
     if (conversations && conversations.length > 0 && !activeConversationId) {
@@ -330,6 +352,18 @@ const Index = () => {
     if ((!userInput.trim() && !attachedFile) || isLoading || !user) return;
 
     setIsLoading(true);
+    
+    let currentMessages = loadingMessagesSets.default;
+    if (userInput.toLowerCase().startsWith("generate image:")) {
+      currentMessages = loadingMessagesSets.image;
+    } else if (isCoderMode) {
+      currentMessages = loadingMessagesSets.code;
+    } else if (isDeepSearchMode) {
+      currentMessages = loadingMessagesSets.search;
+    } else if (attachedFile) {
+      currentMessages = loadingMessagesSets.file;
+    }
+    setCurrentLoadingSet(currentMessages);
 
     let userMessage: Message;
     let apiPrompt = userInput;
@@ -472,7 +506,7 @@ Generate the code now. Do not fail. Build something amazing.`;
       if (apiPrompt.toLowerCase().startsWith("generate image:")) {
         const prompt = apiPrompt.substring("generate image:".length).trim();
         
-        const svgPrompt = `You are an expert SVG generator. Based on the user's request, create a complete, single-file SVG code. The SVG should be visually appealing and accurately represent the user's prompt. Do not include any explanation, conversational text, or markdown formatting like \`\`\`svg. Only output the raw <svg>...</svg> code. User Request: "${prompt}"`;
+        const svgPrompt = `You are an expert SVG generator. Your only function is to return a complete, single-file SVG code for the given user request. The SVG should be visually appealing and accurately represent the user's prompt. Your response MUST begin with "<svg" and end with "</svg>". Do not include any explanation, conversational text, or markdown formatting like \`\`\`svg. ONLY output the raw SVG code. If you absolutely cannot generate an SVG for the request, you must respond with a single word: "ERROR". User Request: "${prompt}"`;
         
         const history = messages.map(msg => ({
           role: msg.role,
@@ -481,19 +515,25 @@ Generate the code now. Do not fail. Build something amazing.`;
 
         const svgResponse = await runChat(svgPrompt, history, fileForApi);
 
-        // A simple check to ensure we have some sort of SVG
-        const sanitizedSvg = svgResponse.trim().startsWith('<svg') 
-            ? svgResponse
-            : `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="10">Sorry, I couldn't generate an SVG for that.</text></svg>`;
-        
-        // Use unescape and encodeURIComponent to handle potential UTF-8 characters in the SVG string before base64 encoding
-        const imageUrl = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(sanitizedSvg)))}`;
-        
-        const modelMessage: Message = { 
-          role: "model", 
-          parts: [{ text: `Here is the SVG image I generated for you:` }],
-          imageUrl: imageUrl
-        };
+        let modelMessage: Message;
+
+        if (svgResponse.trim() === 'ERROR' || !svgResponse.trim().startsWith('<svg')) {
+            modelMessage = {
+                role: "model",
+                parts: [{ text: "I'm sorry, I wasn't able to generate an image for that request. Please try a different prompt." }]
+            };
+            toast.error("Image generation failed.");
+        } else {
+            const sanitizedSvg = svgResponse;
+            // Use unescape and encodeURIComponent to handle potential UTF-8 characters in the SVG string before base64 encoding
+            const imageUrl = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(sanitizedSvg)))}`;
+            
+            modelMessage = { 
+              role: "model", 
+              parts: [{ text: `Here is the SVG image I generated for you:` }],
+              imageUrl: imageUrl
+            };
+        }
         
         setMessages((prev) => [...prev, modelMessage]);
 
@@ -501,7 +541,7 @@ Generate the code now. Do not fail. Build something amazing.`;
             conversation_id: currentConversationId,
             role: 'model',
             parts: modelMessage.parts,
-            image_url: modelMessage.imageUrl,
+            image_url: modelMessage.imageUrl ?? null,
             code: null,
         });
 
