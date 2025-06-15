@@ -844,6 +844,9 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
           </Sheet>
         </div>
       </div>
+      <div className="text-center py-2 text-xs text-muted-foreground bg-background">
+        proudly developed by "Adil Munawar"
+      </div>
     </SidebarProvider>
   );
 };
