@@ -49,7 +49,6 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState(loadingMessages[0]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [runwareApiKey, setRunwareApiKey] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [tempApiKey, setTempApiKey] = useState("");
   const { user, logout } = useAuth();
@@ -184,23 +183,6 @@ const Index = () => {
   };
 
   useEffect(() => {
-    const storedApiKey = localStorage.getItem("runwareApiKey");
-    if (storedApiKey) {
-      setRunwareApiKey(storedApiKey);
-      setTempApiKey(storedApiKey);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (runwareApiKey) {
-      const service = new RunwareService(runwareApiKey);
-      setRunwareService(service);
-    } else {
-      setRunwareService(null);
-    }
-  }, [runwareApiKey]);
-
-  useEffect(() => {
     if (user) {
       const fetchLatestConversation = async () => {
         const { data: convoData, error: convoError } = await supabase
@@ -253,14 +235,8 @@ const Index = () => {
   }, [messages]);
 
   const handleSaveApiKey = () => {
-    if (tempApiKey) {
-      localStorage.setItem("runwareApiKey", tempApiKey);
-      setRunwareApiKey(tempApiKey);
-      setIsSettingsOpen(false);
-      toast.success("API Key saved successfully!");
-    } else {
-      toast.error("Please enter a valid API key.");
-    }
+    toast.info("This setting is no longer used.");
+    setIsSettingsOpen(false);
   };
   
   const handleNewChat = () => {
