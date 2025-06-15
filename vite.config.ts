@@ -11,6 +11,7 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     watch: {
       usePolling: true,
+      ignored: ["**/node_modules/**", "**/.git/**", "**/src/components/ui/**"],
     },
   },
   plugins: [
