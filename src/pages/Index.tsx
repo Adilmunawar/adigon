@@ -228,7 +228,7 @@ const Index = () => {
 
     let apiPrompt = originalMessage;
     if (isCoderMode && !originalMessage.toLowerCase().startsWith("generate image:")) {
-      apiPrompt = `You are a world-class software engineer specializing in creating production-ready applications. Your task is to provide a complete, well-documented, and performant code solution for the following request. Respond ONLY with a markdown code block with the language specified. Do not include any other text or explanation. Request: "${originalMessage}"`;
+      apiPrompt = `You are a world-class software engineer specializing in creating production-ready applications. Your task is to provide a complete, well-documented, and performant code solution for the following request. Do not just give examples, provide full, production-ready code. Respond ONLY with the code. For each file, prefix it with "FILE: " followed by the full path, then a newline, and then the markdown code block. For example:\nFILE: src/components/Button.tsx\n\`\`\`tsx\n// ... button code\n\`\`\`\nDo not include any other text or explanation. Request: "${originalMessage}"`;
     }
 
     let currentConversationId = activeConversationId;
