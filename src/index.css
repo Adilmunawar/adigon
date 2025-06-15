@@ -30,6 +30,18 @@
   }
 }
 
+@keyframes background-pan {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -38,5 +50,7 @@
   body {
     @apply bg-background text-foreground;
     background-image: radial-gradient(circle at 25% 25%, hsl(var(--primary) / 0.1), transparent 50%), radial-gradient(circle at 75% 75%, hsl(var(--accent) / 0.1), transparent 50%);
+    background-size: 400% 400%;
+    animation: background-pan 30s ease infinite;
   }
 }
