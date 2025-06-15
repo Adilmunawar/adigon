@@ -70,18 +70,21 @@ export type Database = {
       }
       profiles: {
         Row: {
+          gender: string | null
           id: string
-          profile_data: Json | null
+          name: string | null
           updated_at: string | null
         }
         Insert: {
+          gender?: string | null
           id: string
-          profile_data?: Json | null
+          name?: string | null
           updated_at?: string | null
         }
         Update: {
+          gender?: string | null
           id?: string
-          profile_data?: Json | null
+          name?: string | null
           updated_at?: string | null
         }
         Relationships: []
