@@ -8,24 +8,27 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/Auth";
 import { AuthProvider } from "./providers/AuthProvider";
+import { ThemeProvider } from "./providers/ThemeProvider";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
