@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,25 +7,25 @@
 
 @layer base {
   :root {
-    --background: 240 10% 3.9%;
-    --foreground: 210 40% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 220 90% 60%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 240 4% 12%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 240 4% 12%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 260 90% 70%;
-    --accent-foreground: 210 40% 98%;
+    --background: 253 14% 11%;
+    --foreground: 253 10% 85%;
+    --card: 253 14% 11%;
+    --card-foreground: 253 10% 85%;
+    --popover: 253 14% 11%;
+    --popover-foreground: 253 10% 85%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 253 10% 95%;
+    --secondary: 253 14% 20%;
+    --secondary-foreground: 253 10% 95%;
+    --muted: 253 14% 20%;
+    --muted-foreground: 253 10% 60%;
+    --accent: 330 89% 65%;
+    --accent-foreground: 253 10% 95%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 210 40% 98%;
-    --border: 240 4% 18%;
-    --input: 240 4% 18%;
-    --ring: 220 90% 60%;
+    --border: 253 14% 25%;
+    --input: 253 14% 25%;
+    --ring: 217 91% 60%;
     --radius: 0.75rem;
   }
 }
@@ -48,6 +49,16 @@
 
   body {
     @apply bg-background text-foreground;
+    background-size: 400% 400%;
+    background-image: linear-gradient(
+      -45deg,
+      hsl(253, 24%, 15%),
+      hsl(283, 27%, 18%),
+      hsl(313, 30%, 21%),
+      hsl(283, 27%, 18%),
+      hsl(253, 24%, 15%)
+    );
+    animation: background-pan 25s ease infinite;
   }
 }
 

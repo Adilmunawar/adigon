@@ -371,7 +371,7 @@ const Index = () => {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen bg-background text-foreground">
+      <div className="flex h-screen bg-transparent text-foreground">
         <AppSidebar
           isSettingsOpen={isSettingsOpen}
           setIsSettingsOpen={setIsSettingsOpen}
@@ -439,7 +439,7 @@ const Index = () => {
               <div ref={messagesEndRef} />
             </div>
           </main>
-          <footer className="p-4 border-t border-white/10 bg-background/80 backdrop-blur-sm">
+          <footer className="p-4 border-t border-white/10 bg-secondary/30 backdrop-blur-md">
             <div className="max-w-4xl mx-auto">
               {attachedFile && (
                 <div className="mb-2 flex items-center justify-between rounded-lg border bg-muted p-2 text-sm">
@@ -487,7 +487,7 @@ const Index = () => {
                   onChange={(e) => setInput(e.target.value)}
                   placeholder={isCoderMode ? "Coder Mode: Describe the file or ask a question..." : "Type 'generate image: a cat' or ask anything..."}
                   disabled={isLoading || !user}
-                  className="flex-1 bg-muted border-border focus:ring-2 focus:ring-primary h-12 text-base px-4 rounded-xl transition-all duration-300 focus:bg-background/70 focus:scale-[1.01]"
+                  className="flex-1 bg-secondary/50 border-border focus:ring-2 focus:ring-primary h-12 text-base px-4 rounded-xl transition-all duration-300 focus:bg-secondary/70 focus:scale-[1.01]"
                 />
                 <Button type="submit" disabled={isLoading || (!input.trim() && !attachedFile) || !user} size="icon" className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground transition-all duration-300 hover:scale-110 hover:brightness-110 active:scale-105 [&_svg]:size-6">
                   {isLoading && messages.length > 0 ? (

@@ -173,10 +173,10 @@ const ChatMessage = ({ message, onReviewCode }: ChatMessageProps) => {
       <div className={cn("flex flex-col w-full max-w-xl", isUser ? "items-end" : "items-start")}>
         <div
           className={cn(
-            "rounded-2xl px-4 md:px-5 py-3 text-base shadow-lg transition-all duration-300 group-hover:shadow-primary/20",
+            "rounded-2xl px-4 md:px-5 py-3 text-base shadow-lg transition-all duration-300 group-hover:shadow-primary/20 border border-white/10",
             isUser
-              ? "bg-gradient-to-br from-primary to-accent text-primary-foreground"
-              : "bg-muted"
+              ? "bg-gradient-to-br from-primary/70 to-accent/70 text-primary-foreground backdrop-blur-md"
+              : "bg-secondary/50 text-secondary-foreground backdrop-blur-md"
           )}
         >
           {isUser ? (
