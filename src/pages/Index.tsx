@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Send, LoaderCircle, Bot, LogOut, Code, Upload, Copy, X, Paperclip, Image, Globe, Sparkles, BrainCircuit, Download } from "lucide-react";
 import ChatMessage, { Message } from "@/components/ChatMessage";
 import { runChat } from "@/lib/gemini";
-import { RunwareService } from "@/lib/runware";
 import { toast } from "@/components/ui/sonner";
 import ThreeScene from "@/components/ThreeScene";
 import AppSidebar from "@/components/AppSidebar";
@@ -51,7 +50,6 @@ const Index = () => {
   const [loadingMessage, setLoadingMessage] = useState(loadingMessages[0]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [runwareApiKey, setRunwareApiKey] = useState<string | null>(null);
-  const [runwareService, setRunwareService] = useState<RunwareService | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [tempApiKey, setTempApiKey] = useState("");
   const { user, logout } = useAuth();
@@ -497,21 +495,29 @@ Generate the code now. Do not fail. Build something amazing.`;
 
       if (apiPrompt.toLowerCase().startsWith("generate image:")) {
         const prompt = apiPrompt.substring("generate image:".length).trim();
-        if (!runwareService || !runwareService.isConnected()) {
-           const errorMessage: Message = { role: "model", parts: [{ text: "Please set your Runware API key in settings to generate images." }] };
-           setMessages((prev) => [...prev, errorMessage]);
-           setIsLoading(false);
-           return;
-        }
-        const result = await runwareService.generateImage({ positivePrompt: prompt });
-        const modelMessage: Message = { role: 'model', parts: [{ text: `Here is the image for: "${prompt}"` }], imageUrl: result.imageURL };
+        
+        const descriptivePrompt = `The user wants to generate an image with the prompt: "${prompt}". Image generation is not directly supported via this API. Instead, create a vivid and detailed text description of what this image would look like.`;
+        
+        const history = messages.map(msg => ({
+          role: msg.role,
+          parts: msg.parts,
+        }));
+
+        const response = await runChat(descriptivePrompt, history, fileForApi);
+        
+        const modelMessage: Message = { 
+          role: "model", 
+          parts: [{ text: `While I can't generate images directly just yet, I've asked Gemini to describe the image you requested:\n\n${response}` }] 
+        };
+        
         setMessages((prev) => [...prev, modelMessage]);
+
         await supabase.from('messages').insert({
             conversation_id: currentConversationId,
             role: 'model',
             parts: modelMessage.parts,
-            image_url: modelMessage.imageUrl,
-            code: modelMessage.code ?? null,
+            image_url: null,
+            code: null,
         });
 
       } else {
