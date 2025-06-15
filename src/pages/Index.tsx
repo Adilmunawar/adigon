@@ -546,8 +546,20 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
             const extractedDataString = await runChat(profileExtractionPrompt, []);
             const extractedData = JSON.parse(extractedDataString);
             
-            if (extractedData && typeof extractedData === 'object' && !Array.isArray(extractedData) && Object.keys(extractedData).length > 0) {
-              const currentProfileData = userProfile || {};
+            // First, ensure extractedData is a non-null, non-array object.
+            if (!extractedData || typeof extractedData !== 'object' || Array.isArray(extractedData)) {
+              console.log("Profile extraction did not produce a valid object.", { extractedData });
+              return; // Exit since we don't have a valid object to merge.
+            }
+
+            // Now, TypeScript knows `extractedData` is an object.
+            // Let's also ensure currentProfileData is an object.
+            const currentProfileData = (userProfile && typeof userProfile === 'object' && !Array.isArray(userProfile)) 
+              ? userProfile 
+              : {};
+            
+            // Only proceed if there's new data.
+            if (Object.keys(extractedData).length > 0) {
               const newProfileData = { ...currentProfileData, ...extractedData };
               
               if (JSON.stringify(currentProfileData) !== JSON.stringify(newProfileData)) {
