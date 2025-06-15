@@ -91,7 +91,7 @@ const Index = () => {
       if (!user) return null;
       const { data, error } = await supabase
         .from('profiles')
-        .select('profile_data')
+        .select('*')
         .eq('id', user.id)
         .single();
       
@@ -100,7 +100,7 @@ const Index = () => {
         toast.error('Could not fetch user profile.');
         return null;
       }
-      return data?.profile_data || {};
+      return data || {};
     },
     enabled: !!user,
   });
@@ -613,7 +613,7 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
               if (JSON.stringify(currentProfileData) !== JSON.stringify(newProfileData)) {
                   const { error } = await supabase
                       .from('profiles')
-                      .update({ profile_data: newProfileData })
+                      .update(newProfileData)
                       .eq('id', user.id);
                   
                   if (error) {
