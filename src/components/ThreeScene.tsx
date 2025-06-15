@@ -13,13 +13,8 @@ const AnimatedShape = () => {
       groupRef.current.rotation.y = time * 0.05;
       groupRef.current.rotation.x = time * 0.025;
 
-      // Make inner spheres rotate independently for a complex, fluid motion
-      groupRef.current.children.forEach((child, index) => {
-        if (index > 0) { // Don't apply to the outermost shell
-          child.rotation.y = time * (0.1 + index * 0.05);
-          child.rotation.x = time * (0.05 + index * 0.02);
-        }
-      });
+      // The previous independent rotation of inner spheres has been removed
+      // to create a more cohesive and less "weird" animation.
     }
   });
   
@@ -41,11 +36,11 @@ const AnimatedShape = () => {
 
   return (
     <group ref={groupRef}>
-      {/* Siri-like layered spheres */}
-      <Sphere scale={1.7} color="#a373ff" opacity={0.1} />
-      <Sphere scale={1.4} color="#8d5cff" opacity={0.15} />
-      <Sphere scale={1.1} color="#c09eff" opacity={0.2} />
-      <Sphere scale={0.7} color="#f0dfff" opacity={0.9} emissiveIntensity={1} />
+      {/* Siri-like layered spheres, adjusted for a sleeker, more modern look */}
+      <Sphere scale={1.7} color="#4a2d80" opacity={0.1} />
+      <Sphere scale={1.4} color="#6a3da0" opacity={0.15} />
+      <Sphere scale={1.1} color="#8a5cc0" opacity={0.2} />
+      <Sphere scale={0.7} color="#eadaff" opacity={0.95} emissiveIntensity={1.2} />
     </group>
   );
 };
