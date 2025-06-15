@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -113,7 +112,7 @@ export default function AuthForm() {
   }
 
   return (
-    <Card className="w-full max-w-sm bg-background/80 backdrop-blur-sm border-border/50 shadow-2xl shadow-primary/10">
+    <Card className="w-full max-w-sm bg-background/80 backdrop-blur-sm border-border/50 shadow-2xl shadow-primary/10 animate-scale-in">
       <CardHeader className="text-center">
         <CardTitle className="text-3xl font-bold">{isSignIn ? "Sign In" : "Sign Up"}</CardTitle>
         <CardDescription>

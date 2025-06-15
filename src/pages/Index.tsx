@@ -15,6 +15,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFo
 import CodeBlock, { parseContent } from "@/components/CodeBlock";
 import * as pdfjsLib from 'pdfjs-dist';
 import JSZip from 'jszip';
+import DeveloperCredit from "@/components/DeveloperCredit";
 
 const examplePrompts = [
   { text: "generate image: a futuristic city at night", icon: Image },
@@ -347,6 +348,14 @@ const Index = () => {
     }
   };
 
+  const handleImageGeneration = () => {
+    if (input.trim()) {
+      handleSendMessage(`generate image: ${input}`);
+    } else {
+      toast.info("Please enter a prompt to generate an image.");
+    }
+  };
+  
   const handleSendMessage = async (promptOverride?: string) => {
     const userInput = promptOverride || input;
     if ((!userInput.trim() && !attachedFile) || isLoading || !user) return;
@@ -781,11 +790,22 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
                       ? "Deep Search: Ask anything to search online..."
                       : isCoderMode
                       ? "Coder Mode: Describe the application to build..."
-                      : "Type a message or 'generate image: a cat'..."
+                      : "Type a message or a prompt for an image..."
                   }
                   disabled={isLoading || !user}
                   className="flex-1 bg-secondary/80 border-border/80 focus:ring-2 focus:ring-primary h-12 text-base px-4 rounded-xl transition-all duration-300 focus:bg-secondary focus:scale-[1.01] placeholder:text-muted-foreground/80"
                 />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  type="button"
+                  onClick={handleImageGeneration}
+                  disabled={isLoading || !user || !input.trim()}
+                  className="h-12 w-12 rounded-xl flex-shrink-0"
+                  aria-label="Generate Image"
+                >
+                  <Image size={20} />
+                </Button>
                 <Button type="submit" disabled={(isLoading || (!input.trim() && !attachedFile)) || !user} size="icon" className="h-12 w-12 rounded-xl bg-primary text-primary-foreground transition-all duration-300 hover:scale-110 hover:brightness-110 active:scale-105 [&_svg]:size-6 shadow-lg shadow-primary/30">
                   {isLoading && messages.length > 0 ? (
                     <LoaderCircle className="animate-spin" />
@@ -844,9 +864,7 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
           </Sheet>
         </div>
       </div>
-      <div className="text-center py-2 text-xs text-muted-foreground bg-background">
-        proudly developed by "Adil Munawar"
-      </div>
+      <DeveloperCredit />
     </SidebarProvider>
   );
 };

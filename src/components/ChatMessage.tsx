@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Bot, User, Copy, Code, Paperclip, Speaker, VolumeX } from "lucide-react";
@@ -144,7 +143,7 @@ const ChatMessage = ({ message, onReviewCode }: ChatMessageProps) => {
         return <code className="bg-secondary text-secondary-foreground px-1 py-0.5 rounded-sm text-sm font-mono" {...props}>{children}</code>
       }
       return (
-        <div className="my-4 rounded-md overflow-hidden">
+        <div className="my-4 rounded-md overflow-x-auto">
           <SyntaxHighlighter
               style={vscDarkPlus}
               language={match ? match[1] : undefined}
