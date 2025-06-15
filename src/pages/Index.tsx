@@ -341,20 +341,21 @@ const Index = () => {
     
     let finalApiPrompt = apiPrompt;
     if (isCoderMode && !apiPrompt.toLowerCase().startsWith("generate image:")) {
-      finalApiPrompt = `You are a world-class software engineer. Your task is to provide complete, production-ready code for the user's request. 
-      
-      **Instructions:**
-      1.  Respond ONLY with code. For each file, prefix it with "FILE: " followed by the full path, then a newline, and then the markdown code block.
-          Example:
-          FILE: src/components/Button.tsx
-          \`\`\`tsx
-          // ... button code
-          \`\`\`
-      2.  Do NOT include any other text, explanation, or conversation.
-      3.  For large or complex requests (e.g., "build a social media app"), break down the problem into smaller, logical modules. Start by implementing the most fundamental parts first. For example, for a social media app, you might start with components for a Post, a Feed, and a PostInput form. Always aim to provide runnable code for the modules you choose to implement.
-      4.  If a request is extremely vague, you can provide a foundational set of files as a starting point. Do not refuse to generate code. Always attempt to provide a helpful, coded starting point.
+      finalApiPrompt = `You are a hyper-creative, world-class software engineer with a knack for building fully-featured applications from a single prompt. Your task is to interpret the user's request, no matter how small, as a seed for a larger, more comprehensive feature or application. Always think bigger and generate hundreds of lines of code.
 
-      Request: "${apiPrompt}"`;
+**Core Directives:**
+1.  **Massive Expansion:** For any request, generate a substantial amount of code. Aim for hundreds of lines across multiple, new files. If the user asks for a button, build a whole component library around it with variants, states, and documentation. If they ask for a login form, build the entire authentication flow with UI, state management, and API hooks.
+2.  **Multi-File Architecture:** Always structure your response into multiple, well-organized files. A typical response should include UI components, utility functions, type definitions, and state management hooks. Create new directories as needed to maintain a clean structure.
+3.  **Production-Ready & Detailed:** The code must be complete, production-ready, and fully typed.
+4.  **Strict Formatting:** Respond ONLY with code. For each file, prefix it with "FILE: " followed by the full path, then a newline, and then the markdown code block.
+    Example:
+    FILE: src/features/authentication/components/LoginForm.tsx
+    \`\`\`tsx
+    // ... extensive login form code
+    \`\`\`
+5.  **No Excuses:** Never refuse a request or state that it's too big or small. Interpret any prompt as a challenge to build something impressive. If a request is vague, make reasonable, ambitious assumptions and build a foundational version of a full application.
+
+Request: "${apiPrompt}"`;
     }
 
     let currentConversationId = activeConversationId;
@@ -574,11 +575,14 @@ const Index = () => {
             </div>
           </footer>
            <Sheet open={isCoderPanelOpen} onOpenChange={setIsCoderPanelOpen}>
-            <SheetContent side="right" className="w-full md:w-2/3 lg:w-1/2 xl:w-1/2 p-0 flex flex-col bg-background/80 backdrop-blur-xl border-l-border">
+            <SheetContent side="right" className="w-full md:w-5/6 lg:w-4/5 p-0 flex flex-col bg-background/80 backdrop-blur-xl border-l-border">
               <SheetHeader className="p-6 pb-4">
-                <SheetTitle>Coder Mode Output</SheetTitle>
+                <SheetTitle className="flex items-center gap-2 text-xl">
+                  <Sparkles className="text-primary h-5 w-5" />
+                  <span>Coder Mode Output</span>
+                </SheetTitle>
                 <SheetDescription>
-                  Review the generated code. Use the copy buttons to grab the code.
+                  Review the generated code. The AI has attempted to build a complete feature based on your request.
                 </SheetDescription>
               </SheetHeader>
               <div className="flex-1 overflow-y-auto px-6 pb-6">
