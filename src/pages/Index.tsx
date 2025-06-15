@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, LoaderCircle, Bot, LogOut } from "lucide-react";
+import { Send, LoaderCircle, Bot, LogOut, Code, Upload } from "lucide-react";
 import ChatMessage, { Message } from "@/components/ChatMessage";
 import { runChat } from "@/lib/gemini";
 import { RunwareService } from "@/lib/runware";
@@ -32,6 +32,8 @@ const Index = () => {
   const { user, logout } = useAuth();
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const [isCoderMode, setIsCoderMode] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: conversations, refetch: refetchConversations } = useQuery({
     queryKey: ["conversations", user?.id],
@@ -195,6 +197,19 @@ const Index = () => {
     toast.info("New chat started!");
   };
 
+  const handleAttachFileClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      console.log("File attached:", file);
+      toast.info(`Attached file: ${file.name}`);
+      // Future functionality can be added here to process the file
+    }
+  };
+
   const handleSendMessage = async (promptOverride?: string) => {
     const messageToSend = promptOverride || input;
     if (!messageToSend.trim() || isLoading || !user) return;
@@ -343,15 +358,43 @@ const Index = () => {
             </div>
           </main>
           <footer className="p-4 border-t border-white/10 bg-background/80 backdrop-blur-sm">
-            <form onSubmit={onFormSubmit} className="flex gap-4 max-w-4xl mx-auto">
+            <form onSubmit={onFormSubmit} className="flex gap-2 max-w-4xl mx-auto items-center">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                type="button"
+                onClick={handleAttachFileClick}
+                disabled={isLoading || !user}
+                className="h-12 w-12 rounded-xl flex-shrink-0"
+                aria-label="Attach file"
+              >
+                <Upload size={20} />
+              </Button>
+              <Button
+                variant={isCoderMode ? "secondary" : "outline"}
+                size="icon"
+                type="button"
+                onClick={() => setIsCoderMode(!isCoderMode)}
+                disabled={isLoading || !user}
+                className="h-12 w-12 rounded-xl flex-shrink-0"
+                aria-label="Toggle Coder Mode"
+              >
+                <Code size={20} />
+              </Button>
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Type 'generate image: a cat' or ask anything..."
+                placeholder={isCoderMode ? "Coder Mode: Describe the file or ask a question..." : "Type 'generate image: a cat' or ask anything..."}
                 disabled={isLoading || !user}
                 className="flex-1 bg-muted border-border focus:ring-2 focus:ring-primary h-12 text-base px-4 rounded-xl transition-all duration-300 focus:bg-background/70 focus:scale-[1.01]"
               />
-              <Button type="submit" disabled={isLoading || !user} size="icon" className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground transition-all duration-300 hover:scale-110 hover:brightness-110 active:scale-105 [&_svg]:size-6">
+              <Button type="submit" disabled={isLoading || !input.trim() || !user} size="icon" className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground transition-all duration-300 hover:scale-110 hover:brightness-110 active:scale-105 [&_svg]:size-6">
                 {isLoading && messages.length > 0 ? (
                   <LoaderCircle className="animate-spin" />
                 ) : (
