@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { Bot, User, Copy } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
@@ -51,12 +50,11 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
             <p key={index} className="leading-relaxed">{part.text}</p>
           ))
         ) : (
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            className="prose prose-invert max-w-none break-words"
-          >
-            {message.parts.map((part) => part.text).join("")}
-          </ReactMarkdown>
+          <div className="prose prose-invert max-w-none break-words">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {message.parts.map((part) => part.text).join("")}
+            </ReactMarkdown>
+          </div>
         )}
         {message.imageUrl && (
             <img src={message.imageUrl} alt="Generated content" className="mt-3 rounded-xl max-w-full h-auto" />
