@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, LoaderCircle, Bot, LogOut, Code, Upload } from "lucide-react";
+import { Send, LoaderCircle, Bot, LogOut, Code, Upload, Copy } from "lucide-react";
 import ChatMessage, { Message } from "@/components/ChatMessage";
 import { runChat } from "@/lib/gemini";
 import { RunwareService } from "@/lib/runware";
@@ -12,6 +12,8 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/providers/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
+import CodeBlock from "@/components/CodeBlock";
 
 const examplePrompts = [
   "generate image: a futuristic city at night",
@@ -33,6 +35,7 @@ const Index = () => {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const [isCoderMode, setIsCoderMode] = useState(false);
+  const [coderResponse, setCoderResponse] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: conversations, refetch: refetchConversations } = useQuery({
@@ -225,7 +228,7 @@ const Index = () => {
 
     let apiPrompt = originalMessage;
     if (isCoderMode && !originalMessage.toLowerCase().startsWith("generate image:")) {
-      apiPrompt = `You are an expert software developer. Provide a code example for the following request. Respond ONLY with a markdown code block with the language specified. Do not include any other text. Request: "${originalMessage}"`;
+      apiPrompt = `You are a world-class software engineer specializing in creating production-ready applications. Your task is to provide a complete, well-documented, and performant code solution for the following request. Respond ONLY with a markdown code block with the language specified. Do not include any other text or explanation. Request: "${originalMessage}"`;
     }
 
     let currentConversationId = activeConversationId;
@@ -274,13 +277,25 @@ const Index = () => {
           parts: msg.parts,
         }));
         const response = await runChat(apiPrompt, history);
-        const modelMessage: Message = { role: "model", parts: [{ text: response }] };
-        setMessages((prev) => [...prev, modelMessage]);
-        await supabase.from('messages').insert({
+        
+        if (isCoderMode) {
+          setCoderResponse(response);
+          const modelMessage: Message = { role: "model", parts: [{ text: "I have generated the code in the side panel for you." }] };
+          setMessages((prev) => [...prev, modelMessage]);
+           await supabase.from('messages').insert({
             conversation_id: currentConversationId,
             role: 'model',
             parts: modelMessage.parts,
-        });
+          });
+        } else {
+          const modelMessage: Message = { role: "model", parts: [{ text: response }] };
+          setMessages((prev) => [...prev, modelMessage]);
+          await supabase.from('messages').insert({
+              conversation_id: currentConversationId,
+              role: 'model',
+              parts: modelMessage.parts,
+          });
+        }
       }
     } catch (error) {
       console.error("Failed to get response or save message", error);
@@ -409,6 +424,32 @@ const Index = () => {
               </Button>
             </form>
           </footer>
+           <Sheet open={!!coderResponse} onOpenChange={(isOpen) => !isOpen && setCoderResponse(null)}>
+            <SheetContent side="right" className="w-full md:w-2/3 lg:w-1/2 xl:w-1/2 p-0 flex flex-col">
+              <SheetHeader className="p-6 pb-4">
+                <SheetTitle>Coder Mode Output</SheetTitle>
+                <SheetDescription>
+                  The AI has generated the following code. You can review and copy it.
+                </SheetDescription>
+              </SheetHeader>
+              <div className="flex-1 overflow-y-auto px-6">
+                {coderResponse && <CodeBlock content={coderResponse} />}
+              </div>
+              <SheetFooter className="p-6 pt-4 bg-background/80 backdrop-blur-sm border-t">
+                <Button
+                  onClick={() => {
+                    if (coderResponse) {
+                      navigator.clipboard.writeText(coderResponse);
+                      toast.success("Copied to clipboard!");
+                    }
+                  }}
+                  className="w-full"
+                >
+                  <Copy className="mr-2 h-4 w-4" /> Copy Code
+                </Button>
+              </SheetFooter>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
     </SidebarProvider>

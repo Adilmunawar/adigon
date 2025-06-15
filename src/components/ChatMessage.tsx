@@ -1,10 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Bot, User, Copy } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import CodeBlock from "./CodeBlock";
 
 export interface Message {
   role: "user" | "model";
@@ -52,31 +49,7 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
             <p key={index} className="leading-relaxed">{part.text}</p>
           ))
         ) : (
-          <div className="prose prose-invert max-w-none break-words">
-            <ReactMarkdown 
-              remarkPlugins={[remarkGfm]}
-              components={{
-                code({node, className, children, ...props}) {
-                  const match = /language-(\w+)/.exec(className || '')
-                  return match ? (
-                    <SyntaxHighlighter
-                      style={vscDarkPlus as any}
-                      language={match[1]}
-                      PreTag="pre"
-                    >
-                      {String(children).replace(/\n$/, '')}
-                    </SyntaxHighlighter>
-                  ) : (
-                    <code className={className} {...props}>
-                      {children}
-                    </code>
-                  )
-                }
-              }}
-            >
-              {message.parts.map((part) => part.text).join("")}
-            </ReactMarkdown>
-          </div>
+          <CodeBlock content={message.parts.map((part) => part.text).join("")} />
         )}
         {message.imageUrl && (
             <img src={message.imageUrl} alt="Generated content" className="mt-3 rounded-xl max-w-full h-auto" />
