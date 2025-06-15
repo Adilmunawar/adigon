@@ -1,7 +1,6 @@
 
 import React, { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { TorusKnot } from '@react-three/drei';
 import * as THREE from 'three';
 
 const AnimatedShape = () => {
@@ -17,8 +16,8 @@ const AnimatedShape = () => {
   });
 
   return (
-    // @ts-ignore - Drei components sometimes have typing issues with refs
-    <TorusKnot ref={meshRef} args={[0.9, 0.25, 256, 32, 3, 4]} scale={1.2}>
+    <mesh ref={meshRef} args={[0.9, 0.25, 256, 32, 3, 4]} scale={1.2}>
+      <torusKnotGeometry args={[0.9, 0.25, 256, 32, 3, 4]} />
       <meshPhysicalMaterial 
         color="#ffffff"
         metalness={0.2}
@@ -29,7 +28,7 @@ const AnimatedShape = () => {
         clearcoat={1}
         clearcoatRoughness={0}
       />
-    </TorusKnot>
+    </mesh>
   );
 };
 
