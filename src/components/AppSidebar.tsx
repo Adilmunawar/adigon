@@ -80,26 +80,10 @@ const AppSidebar = ({
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <SidebarMenuButton>
-                        <RefreshCw size={18} />
-                        {!collapsed && <span>New Chat</span>}
-                    </SidebarMenuButton>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent className="bg-background">
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will start a new chat and your current conversation will be cleared.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleNewChat} className="bg-primary hover:bg-primary/90">Continue</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <SidebarMenuButton onClick={handleNewChat}>
+                    <RefreshCw size={18} />
+                    {!collapsed && <span>New Chat</span>}
+                </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
