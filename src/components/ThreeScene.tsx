@@ -36,7 +36,7 @@ const AnimatedShape = () => {
 const ThreeScene = () => {
   return (
     <div className="w-full h-64 md:h-80 -mt-8 mb-4 cursor-grab active:cursor-grabbing">
-      <Canvas camera={{ position: [0, 0, 3.5], fov: 45 }}>
+      <Canvas camera={{ position: [0, 0, 3.5] }}>
         <ambientLight intensity={0.4} />
         <pointLight position={[5, 5, 5]} intensity={2.5} color="#9b59b6" />
         <pointLight position={[-5, -5, -5]} intensity={3} color="#3498db" />
