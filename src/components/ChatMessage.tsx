@@ -38,7 +38,7 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
       )}
       <div
         className={cn(
-          "max-w-xl rounded-2xl px-5 py-3 text-base shadow-lg transition-all duration-300",
+          "max-w-xl rounded-2xl px-5 py-3 text-base shadow-lg transition-all duration-300 group-hover:shadow-primary/20",
           isUser
             ? "bg-gradient-to-br from-primary to-accent text-primary-foreground"
             : "bg-muted"

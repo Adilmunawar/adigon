@@ -21,11 +21,6 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/sonner";
 import ThreeScene from "@/components/ThreeScene";
 
-const initialMessage: Message = {
-  role: 'model',
-  parts: [{ text: "Hello! I am AdiGon. You can chat with me or ask me to generate an image. To generate an image, type 'generate image: ' followed by your prompt." }]
-};
-
 const examplePrompts = [
   "generate image: a futuristic city at night",
   "What is the capital of France?",
@@ -34,7 +29,7 @@ const examplePrompts = [
 ];
 
 const Index = () => {
-  const [messages, setMessages] = useState<Message[]>([initialMessage]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -80,7 +75,7 @@ const Index = () => {
   };
   
   const handleNewChat = () => {
-    setMessages([initialMessage]);
+    setMessages([]);
     toast.info("New chat started!");
   };
 
@@ -200,7 +195,7 @@ const Index = () => {
             <ChatMessage key={index} message={msg} />
           ))}
 
-          {messages.length === 1 && !isLoading && (
+          {messages.length === 0 && !isLoading && (
             <div className="py-8 text-center animate-fade-in-up">
                 <ThreeScene />
                 <h2 className="text-lg font-semibold text-muted-foreground mb-4 mt-4">Try one of these prompts:</h2>
