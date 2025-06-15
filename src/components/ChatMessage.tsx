@@ -2,6 +2,8 @@
 import { cn } from "@/lib/utils";
 import { Bot, User, Copy } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export interface Message {
   role: "user" | "model";
@@ -44,9 +46,18 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
             : "bg-muted"
         )}
       >
-        {message.parts.map((part, index) => (
-          <p key={index} className="leading-relaxed">{part.text}</p>
-        ))}
+        {isUser ? (
+          message.parts.map((part, index) => (
+            <p key={index} className="leading-relaxed">{part.text}</p>
+          ))
+        ) : (
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            className="prose prose-invert max-w-none break-words"
+          >
+            {message.parts.map((part) => part.text).join("")}
+          </ReactMarkdown>
+        )}
         {message.imageUrl && (
             <img src={message.imageUrl} alt="Generated content" className="mt-3 rounded-xl max-w-full h-auto" />
         )}
