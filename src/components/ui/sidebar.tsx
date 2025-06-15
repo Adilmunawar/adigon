@@ -1,10 +1,9 @@
-
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { PanelLeft, PanelRight } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { Button, ButtonProps } from "@/components/ui/button"
 
 const SidebarContext = React.createContext<{
   collapsed: boolean
@@ -159,24 +158,23 @@ const SidebarMenuItem = React.forwardRef<
 })
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
-const SidebarMenuButton = React.forwardRef<
-  HTMLButtonElement,
-  React.ButtonHTMLAttributes<HTMLButtonElement>
->(({ className, ...props }, ref) => {
-  const { collapsed } = useSidebar()
-  return (
-    <Button
-      ref={ref}
-      variant="ghost"
-      className={cn(
-        "flex w-full items-center justify-start gap-2",
-        collapsed && "justify-center",
-        className
-      )}
-      {...props}
-    />
-  )
-})
+const SidebarMenuButton = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant = "ghost", ...props }, ref) => {
+    const { collapsed } = useSidebar()
+    return (
+      <Button
+        ref={ref}
+        variant={variant}
+        className={cn(
+          "flex w-full items-center justify-start gap-2",
+          collapsed && "justify-center",
+          className
+        )}
+        {...props}
+      />
+    )
+  }
+)
 SidebarMenuButton.displayName = "SidebarMenuButton"
 
 const SidebarMenuLink = React.forwardRef<
