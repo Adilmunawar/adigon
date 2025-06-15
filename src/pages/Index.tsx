@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import CodeBlock from "@/components/CodeBlock";
+import * as pdfjsLib from 'pdfjs-dist';
 
 const examplePrompts = [
   { text: "generate image: a futuristic city at night", icon: Image },
@@ -23,10 +23,31 @@ const examplePrompts = [
   { text: "Explain quantum computing in simple terms", icon: BrainCircuit },
 ];
 
+const loadingMessages = [
+  "Thinking...",
+  "Gathering information...",
+  "Searching the web...",
+  "Compiling response...",
+];
+
+const extractTextFromPdf = async (file: File): Promise<string> => {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+  let textContent = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const text = await page.getTextContent();
+    const pageText = text.items.map(item => 'str' in item ? item.str : '').join(' ');
+    textContent += pageText + '\n';
+  }
+  return textContent;
+};
+
 const Index = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState(loadingMessages[0]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [runwareApiKey, setRunwareApiKey] = useState<string | null>(null);
   const [runwareService, setRunwareService] = useState<RunwareService | null>(null);
@@ -58,6 +79,28 @@ const Index = () => {
     },
     enabled: !!user,
   });
+
+  useEffect(() => {
+    // Setup PDF.js worker from CDN
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.mjs`;
+  }, []);
+  
+  useEffect(() => {
+    let interval: NodeJS.Timeout | undefined;
+    if (isLoading) {
+      let i = 0;
+      setLoadingMessage(loadingMessages[0]); // Reset to first message on new load
+      interval = setInterval(() => {
+        i = (i + 1) % loadingMessages.length;
+        setLoadingMessage(loadingMessages[i]);
+      }, 2500);
+    }
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [isLoading]);
 
   useEffect(() => {
     if (conversations && conversations.length > 0 && !activeConversationId) {
@@ -213,13 +256,18 @@ const Index = () => {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast.error("File is too large. Please use a file smaller than 5MB.");
+      if (file.size > 10 * 1024 * 1024) { // Increased to 10MB for PDFs
+        toast.error("File is too large. Please use a file smaller than 10MB.");
         return;
       }
-      // A simple check to warn about potentially non-text files.
-      if (!file.type.startsWith('text/') && !/\.(txt|md|json|js|ts|tsx|css|html)$/.test(file.name)) {
-        toast.warning("File might not be readable as text, but I'll try my best!");
+      
+      const isSupported = file.type.startsWith('image/') || 
+                          file.type.startsWith('text/') || 
+                          file.type === 'application/pdf' ||
+                          /\.(txt|md|json|js|ts|tsx|css|html)$/.test(file.name);
+
+      if (!isSupported) {
+        toast.warning("Unsupported file type, but I'll try my best to process it as text.");
       }
 
       setAttachedFile(file);
@@ -251,7 +299,20 @@ const Index = () => {
         userMessage = { role: "user", parts: [{ text: userInput }], imageUrl: objectUrl };
         fileForApi = attachedFile;
         // apiPrompt is just userInput for images, file is passed separately
-      } else if (attachedFile.type.startsWith('text/') || /\.(txt|md|json|js|ts|tsx|css|html)$/.test(attachedFile.name)) {
+      } else if (attachedFile.type === 'application/pdf') {
+        try {
+          const fileContent = await extractTextFromPdf(attachedFile);
+          const messageText = `[ATTACHMENT: ${attachedFile.name}]\n${fileContent}\n[/ATTACHMENT]\n\n${userInput}`;
+          userMessage = { role: "user", parts: [{ text: messageText }] };
+          apiPrompt = messageText;
+        } catch (error) {
+          console.error("Error reading PDF file:", error);
+          toast.error("Could not read the attached PDF file.");
+          setIsLoading(false);
+          setAttachedFile(null);
+          return;
+        }
+      } else { // Treat as text file by default
         try {
           const fileContent = await attachedFile.text();
           const messageText = `[ATTACHMENT: ${attachedFile.name}]\n${fileContent}\n[/ATTACHMENT]\n\n${userInput}`;
@@ -264,11 +325,6 @@ const Index = () => {
           setAttachedFile(null);
           return;
         }
-      } else {
-        toast.error(`File type "${attachedFile.type}" is not supported yet. Only images and text files are currently supported.`);
-        setIsLoading(false);
-        setAttachedFile(null);
-        return;
       }
     } else {
       userMessage = { role: "user", parts: [{ text: userInput }] };
@@ -402,10 +458,22 @@ const Index = () => {
                 <ChatMessage key={index} message={msg} onReviewCode={handleReviewCode} />
               ))}
 
+              {isLoading && (
+                <div className="group flex animate-fade-in-up items-start gap-3 md:gap-4 py-4">
+                  <div className="flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary ring-2 ring-primary/40">
+                    <Bot size={24} />
+                  </div>
+                  <div className="rounded-2xl px-4 md:px-5 py-3 text-base shadow-lg transition-all duration-300 group-hover:shadow-primary/20 border border-white/10 bg-secondary/50 text-secondary-foreground backdrop-blur-md flex items-center">
+                    <LoaderCircle size={20} className="animate-spin mr-3" />
+                    <p>{loadingMessage}</p>
+                  </div>
+                </div>
+              )}
+
               {messages.length === 0 && !isLoading && (
                 <div className="py-8 text-center animate-fade-in-up">
                     <ThreeScene />
-                    <h2 className="text-lg font-semibold text-muted-foreground mb-4 mt-4">Try one of these prompts:</h2>
+                    <h2 className="text-lg font-semibold text-muted-foreground mb-4">Try one of these prompts:</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg mx-auto">
                         {examplePrompts.map((prompt) => {
                           const Icon = prompt.icon;
@@ -425,17 +493,6 @@ const Index = () => {
                 </div>
               )}
 
-              {isLoading && messages.length === 0 && (
-                <div className="flex items-start gap-4 py-4 animate-fade-in-up">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary ring-2 ring-primary/40">
-                    <Bot size={24} />
-                  </div>
-                  <div className="max-w-md rounded-2xl px-5 py-3 text-base bg-muted shadow-md flex items-center">
-                    <LoaderCircle size={20} className="animate-spin mr-3" />
-                    <p>Thinking...</p>
-                  </div>
-                </div>
-              )}
               <div ref={messagesEndRef} />
             </div>
           </main>

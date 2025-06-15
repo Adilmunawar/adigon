@@ -1,4 +1,3 @@
-
 import React, { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
@@ -53,7 +52,7 @@ const AnimatedShape = () => {
 
 const ThreeScene = () => {
   return (
-    <div className="w-full h-64 md:h-80 -mt-8 mb-4 cursor-grab active:cursor-grabbing">
+    <div className="w-full h-64 md:h-80 cursor-grab active:cursor-grabbing">
       <Canvas camera={{ position: [0, 0, 5.5], fov: 50 }}>
         <ambientLight intensity={0.5} />
         <directionalLight color="#d6baff" position={[0, 0, 5]} intensity={1.5} />
