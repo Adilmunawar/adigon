@@ -11,6 +11,7 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel
 } from "@/components/ui/sidebar";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Settings, RefreshCw, Bot, MessageSquare, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
@@ -62,8 +63,8 @@ const AppSidebar = ({
   const { collapsed } = useSidebar();
 
   return (
-    <Sidebar>
-      <SidebarHeader>
+    <Sidebar className="border-r border-border/40">
+      <SidebarHeader className="border-b border-border/40">
         <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center text-primary shrink-0">
                 <Bot size={24} />
@@ -75,12 +76,12 @@ const AppSidebar = ({
             )}
         </div>
       </SidebarHeader>
-      <SidebarContent className="flex flex-col">
-        <SidebarGroup>
+      <SidebarContent className="flex flex-col overflow-hidden">
+        <SidebarGroup className="py-2">
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton onClick={handleNewChat}>
+                <SidebarMenuButton onClick={handleNewChat} className="w-full">
                     <RefreshCw size={18} />
                     {!collapsed && <span>New Chat</span>}
                 </SidebarMenuButton>
@@ -89,55 +90,57 @@ const AppSidebar = ({
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="flex-1 overflow-y-auto">
+        <SidebarGroup className="flex-1 overflow-hidden">
           {!collapsed && <SidebarGroupLabel>History</SidebarGroupLabel>}
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {conversations.map((convo) => (
-                <SidebarMenuItem key={convo.id}>
-                  <div className="group flex items-center w-full">
-                    <SidebarMenuButton
-                      onClick={() => onSelectConversation(convo.id)}
-                      variant={activeConversationId === convo.id ? "secondary" : "ghost"}
-                      className="w-full justify-start truncate flex-1"
-                    >
-                      {!collapsed && <span className="truncate flex-1 text-left">{convo.title}</span>}
-                    </SidebarMenuButton>
-                    {!collapsed && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Trash2 size={16} />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent className="bg-background">
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete this conversation.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onDeleteConversation(convo.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
-                  </div>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+          <SidebarGroupContent className="overflow-hidden">
+            <ScrollArea className="h-full">
+              <SidebarMenu className="space-y-1 pr-2">
+                {conversations.map((convo) => (
+                  <SidebarMenuItem key={convo.id}>
+                    <div className="group flex items-center w-full">
+                      <SidebarMenuButton
+                        onClick={() => onSelectConversation(convo.id)}
+                        variant={activeConversationId === convo.id ? "secondary" : "ghost"}
+                        className="w-full justify-start truncate flex-1 pr-1"
+                      >
+                        {!collapsed && <span className="truncate flex-1 text-left">{convo.title}</span>}
+                      </SidebarMenuButton>
+                      {!collapsed && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Trash2 size={16} />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="bg-background">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete this conversation.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => onDeleteConversation(convo.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                    </div>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </ScrollArea>
           </SidebarGroupContent>
         </SidebarGroup>
         
-        <SidebarGroup className="mt-auto">
+        <SidebarGroup className="mt-auto border-t border-border/40 py-2">
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                  <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
                     <DialogTrigger asChild>
-                      <SidebarMenuButton>
+                      <SidebarMenuButton className="w-full">
                           <Settings size={18} />
                           {!collapsed && <span>Settings</span>}
                       </SidebarMenuButton>

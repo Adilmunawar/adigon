@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Bot, User, Copy, Code, Paperclip, Speaker, VolumeX } from "lucide-react";
@@ -31,14 +32,14 @@ const UserMessageContent = ({ text }: { text: string }) => {
   const match = text.match(attachmentRegex);
 
   if (!match) {
-    return <p className="leading-relaxed whitespace-pre-wrap">{text}</p>;
+    return <p className="leading-relaxed whitespace-pre-wrap break-words">{text}</p>;
   }
 
   const [, fileName, fileContent, userPrompt] = match;
 
   return (
     <div className="space-y-3">
-      {userPrompt && <p className="leading-relaxed whitespace-pre-wrap">{userPrompt}</p>}
+      {userPrompt && <p className="leading-relaxed whitespace-pre-wrap break-words">{userPrompt}</p>}
       <Accordion type="single" collapsible className="w-full bg-black/20 rounded-lg border border-white/10">
         <AccordionItem value="item-1" className="border-none">
           <AccordionTrigger className="p-3 hover:no-underline justify-start gap-2 text-sm font-semibold text-primary-foreground/80 hover:text-primary-foreground">
@@ -79,10 +80,9 @@ const ChatMessage = ({ message, onReviewCode }: ChatMessageProps) => {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
     } else {
-      window.speechSynthesis.cancel(); // Cancel any previous speech
+      window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(messageText);
 
-      // Attempt to find a female voice
       const voices = window.speechSynthesis.getVoices();
       const femaleVoice = voices.find(voice => 
         voice.lang.startsWith('en') && 
@@ -109,7 +109,6 @@ const ChatMessage = ({ message, onReviewCode }: ChatMessageProps) => {
     }
   };
 
-  // Get voices when they are loaded and cleanup on unmount
   useEffect(() => {
     const loadVoices = () => {
         window.speechSynthesis.getVoices();
@@ -132,7 +131,7 @@ const ChatMessage = ({ message, onReviewCode }: ChatMessageProps) => {
     h1: ({node, ...props}) => <h1 className="text-2xl font-bold my-4" {...props} />,
     h2: ({node, ...props}) => <h2 className="text-xl font-semibold my-3" {...props} />,
     h3: ({node, ...props}) => <h3 className="text-lg font-semibold my-2" {...props} />,
-    p: ({node, ...props}) => <p className="mb-4 last:mb-0" {...props} />,
+    p: ({node, ...props}) => <p className="mb-4 last:mb-0 break-words" {...props} />,
     ul: ({node, ...props}) => <ul className="list-disc list-inside mb-4 pl-4" {...props} />,
     ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-4 pl-4" {...props} />,
     li: ({node, ...props}) => <li className="mb-2" {...props} />,
@@ -140,14 +139,19 @@ const ChatMessage = ({ message, onReviewCode }: ChatMessageProps) => {
     code({node, inline, className, children, ...props}) {
       const match = /language-(\w+)/.exec(className || '')
       if (inline) {
-        return <code className="bg-secondary text-secondary-foreground px-1 py-0.5 rounded-sm text-sm font-mono" {...props}>{children}</code>
+        return <code className="bg-secondary text-secondary-foreground px-1 py-0.5 rounded-sm text-sm font-mono break-words" {...props}>{children}</code>
       }
       return (
-        <div className="my-4 rounded-md overflow-x-auto">
+        <div className="my-4 rounded-md overflow-hidden">
           <SyntaxHighlighter
               style={vscDarkPlus}
               language={match ? match[1] : undefined}
               PreTag="div"
+              customStyle={{
+                margin: 0,
+                maxWidth: '100%',
+                overflow: 'auto'
+              }}
               {...props}
           >
               {String(children).replace(/\n$/, '')}
@@ -160,7 +164,7 @@ const ChatMessage = ({ message, onReviewCode }: ChatMessageProps) => {
   return (
     <div
       className={cn(
-        "group flex animate-fade-in-up items-start gap-3 md:gap-4 py-4",
+        "group flex animate-fade-in-up items-start gap-3 md:gap-4 py-4 max-w-none",
         isUser && "justify-end"
       )}
     >
@@ -169,10 +173,10 @@ const ChatMessage = ({ message, onReviewCode }: ChatMessageProps) => {
           <Bot size={24} />
         </div>
       )}
-      <div className={cn("flex flex-col w-full max-w-xl", isUser ? "items-end" : "items-start")}>
+      <div className={cn("flex flex-col w-full max-w-3xl", isUser ? "items-end" : "items-start")}>
         <div
           className={cn(
-            "px-4 md:px-5 py-3 text-base shadow-lg transition-all duration-300 group-hover:shadow-primary/20 border",
+            "px-4 md:px-5 py-3 text-base shadow-lg transition-all duration-300 group-hover:shadow-primary/20 border max-w-full",
             isUser
               ? "bg-primary text-primary-foreground border-primary/50 rounded-t-2xl rounded-bl-2xl"
               : "bg-secondary text-secondary-foreground border-border rounded-t-2xl rounded-br-2xl"
@@ -183,12 +187,21 @@ const ChatMessage = ({ message, onReviewCode }: ChatMessageProps) => {
               <UserMessageContent key={index} text={part.text} />
             ))
           ) : (
-            <ReactMarkdown components={MarkdownComponents} remarkPlugins={[remarkGfm]}>
-              {messageText}
-            </ReactMarkdown>
+            <div className="overflow-hidden">
+              <ReactMarkdown components={MarkdownComponents} remarkPlugins={[remarkGfm]}>
+                {messageText}
+              </ReactMarkdown>
+            </div>
           )}
           {message.imageUrl && (
-              <img src={message.imageUrl} alt="Generated content" className="mt-3 rounded-lg max-w-full h-auto" />
+              <div className="mt-3 rounded-lg overflow-hidden bg-secondary/20 p-2">
+                <img 
+                  src={message.imageUrl} 
+                  alt="Generated content" 
+                  className="w-full h-auto max-w-full rounded-md shadow-lg"
+                  style={{ maxHeight: '500px', objectFit: 'contain' }}
+                />
+              </div>
           )}
           {!isUser && message.code && onReviewCode && (
             <div className="mt-3 border-t pt-3">

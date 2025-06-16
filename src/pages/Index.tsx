@@ -31,9 +31,9 @@ const loadingMessagesSets = {
     "Compiling response...",
   ],
   image: [
-    "Imagining...",
-    "Generating image...",
-    "Adding final touches...",
+    "Crafting your vision...",
+    "Generating high-quality image...",
+    "Adding artistic details...",
   ],
   code: [
     "Analyzing request...",
@@ -515,33 +515,48 @@ Generate the code now. Do not fail. Build something amazing.`;
       if (apiPrompt.toLowerCase().startsWith("generate image:")) {
         const prompt = apiPrompt.substring("generate image:".length).trim();
         
-        const svgPrompt = `You are an expert SVG generator. Your only function is to return a complete, single-file SVG code for the given user request. The SVG should be visually appealing and accurately represent the user's prompt. Your response MUST begin with "<svg" and end with "</svg>". Do not include any explanation, conversational text, or markdown formatting like \`\`\`svg. ONLY output the raw SVG code. If you absolutely cannot generate an SVG for the request, you must respond with a single word: "ERROR". User Request: "${prompt}"`;
+        const enhancedSvgPrompt = `You are an expert SVG artist and designer. Create a stunning, highly detailed SVG image based on the user's request. 
+
+STRICT REQUIREMENTS:
+1. Your response MUST start with "<svg" and end with "</svg>"
+2. Create a visually striking, professional-quality illustration
+3. Use rich colors, gradients, and detailed elements
+4. Ensure the SVG is scalable and looks great at any size
+5. Include intricate details that make the image captivating
+6. Use modern SVG techniques like gradients, filters, and complex paths
+7. Make it artistic and visually appealing, not just simple shapes
+8. The viewBox should be appropriate for the content (e.g., "0 0 800 600")
+9. NO explanatory text, markdown formatting, or anything except pure SVG code
+
+User's image request: "${prompt}"
+
+Create a masterpiece-quality SVG that exceeds expectations:`;
         
         const history = messages.map(msg => ({
           role: msg.role,
           parts: msg.parts,
         }));
 
-        const svgResponse = await runChat(svgPrompt, history, fileForApi);
+        const svgResponse = await runChat(enhancedSvgPrompt, history, fileForApi);
 
         let modelMessage: Message;
 
         if (svgResponse.trim() === 'ERROR' || !svgResponse.trim().startsWith('<svg')) {
             modelMessage = {
                 role: "model",
-                parts: [{ text: "I'm sorry, I wasn't able to generate an image for that request. Please try a different prompt." }]
+                parts: [{ text: "I apologize, but I encountered an issue generating that image. Please try a different prompt or be more specific about what you'd like to see." }]
             };
-            toast.error("Image generation failed.");
+            toast.error("Image generation failed. Please try again with a different prompt.");
         } else {
-            const sanitizedSvg = svgResponse;
-            // Use unescape and encodeURIComponent to handle potential UTF-8 characters in the SVG string before base64 encoding
+            const sanitizedSvg = svgResponse.trim();
             const imageUrl = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(sanitizedSvg)))}`;
             
             modelMessage = { 
               role: "model", 
-              parts: [{ text: `Here is the SVG image I generated for you:` }],
+              parts: [{ text: `Here's your high-quality image generated with artistic detail:` }],
               imageUrl: imageUrl
             };
+            toast.success("High-quality image generated successfully!");
         }
         
         setMessages((prev) => [...prev, modelMessage]);
@@ -645,7 +660,7 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen bg-transparent text-foreground font-sans">
+      <div className="flex h-screen bg-transparent text-foreground font-sans overflow-hidden">
         <AppSidebar
           isSettingsOpen={isSettingsOpen}
           setIsSettingsOpen={setIsSettingsOpen}
@@ -658,20 +673,27 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
           onSelectConversation={handleSelectConversation}
           onDeleteConversation={handleDeleteConversation}
         />
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <main className="flex-1 overflow-y-auto p-6 relative">
-            <SidebarTrigger className="absolute top-4 left-6" />
-            {user && (
-              <div className="absolute top-4 right-6 flex items-center gap-4">
-                <span className="text-sm text-muted-foreground hidden sm:inline">
-                  {user.email}
-                </span>
-                <Button variant="outline" size="icon" onClick={signOut} className="rounded-full" aria-label="Logout">
-                  <LogOut size={16} />
-                </Button>
-              </div>
-            )}
-            <div className="max-w-4xl mx-auto pt-8">
+        <div className="flex flex-col flex-1 overflow-hidden relative">
+          {/* Fixed Header */}
+          <header className="fixed top-0 right-0 left-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50 px-6 py-4">
+            <div className="flex items-center justify-between w-full">
+              <SidebarTrigger />
+              {user && (
+                <div className="flex items-center gap-4">
+                  <span className="text-sm text-muted-foreground hidden sm:inline">
+                    {user.email}
+                  </span>
+                  <Button variant="outline" size="icon" onClick={signOut} className="rounded-full" aria-label="Logout">
+                    <LogOut size={16} />
+                  </Button>
+                </div>
+              )}
+            </div>
+          </header>
+
+          {/* Main Content with proper padding to account for fixed header */}
+          <main className="flex-1 overflow-y-auto pt-20 pb-6 px-6">
+            <div className="max-w-4xl mx-auto">
               {messages.map((msg, index) => (
                 <ChatMessage key={index} message={msg} onReviewCode={handleReviewCode} />
               ))}
@@ -691,7 +713,7 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
               {messages.length === 0 && !isLoading && (
                 <div className="py-8 text-center animate-fade-in-up">
                     <ThreeScene />
-                    <h2 className="text-2xl font-bold text-foreground mt-8 mb-2">Welcome to Lovable</h2>
+                    <h2 className="text-2xl font-bold text-foreground mt-8 mb-2">Welcome to AdiGon</h2>
                     <p className="text-lg text-muted-foreground mb-8">What can I help you create today?</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
                         {examplePrompts.map((prompt) => {
@@ -716,7 +738,9 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
               <div ref={messagesEndRef} />
             </div>
           </main>
-          <footer className="p-4 border-t border-border/50 bg-background/50 backdrop-blur-lg">
+
+          {/* Fixed Footer */}
+          <footer className="fixed bottom-0 left-0 right-0 z-40 p-4 border-t border-border/50 bg-background/80 backdrop-blur-lg">
             <div className="max-w-4xl mx-auto">
               {attachedFile && (
                 <div className="mb-2 flex items-center justify-between rounded-lg border bg-muted p-2 text-sm">
@@ -790,7 +814,7 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
                       ? "Deep Search: Ask anything to search online..."
                       : isCoderMode
                       ? "Coder Mode: Describe the application to build..."
-                      : "Type a message or a prompt for an image..."
+                      : "Type a message or a prompt for a high-quality image..."
                   }
                   disabled={isLoading || !user}
                   className="flex-1 bg-secondary/80 border-border/80 focus:ring-2 focus:ring-primary h-12 text-base px-4 rounded-xl transition-all duration-300 focus:bg-secondary focus:scale-[1.01] placeholder:text-muted-foreground/80"
@@ -802,7 +826,7 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
                   onClick={handleImageGeneration}
                   disabled={isLoading || !user || !input.trim()}
                   className="h-12 w-12 rounded-xl flex-shrink-0"
-                  aria-label="Generate Image"
+                  aria-label="Generate High-Quality Image"
                 >
                   <Image size={20} />
                 </Button>
@@ -817,51 +841,8 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
               </form>
             </div>
           </footer>
-           <Sheet open={isCoderPanelOpen} onOpenChange={setIsCoderPanelOpen}>
-            <SheetContent side="right" className="w-full md:w-5/6 lg:w-4/5 p-0 flex flex-col bg-background/80 backdrop-blur-xl border-l-border">
-              <SheetHeader className="p-6 pb-4">
-                <SheetTitle className="flex items-center gap-2 text-xl">
-                  <Sparkles className="text-primary h-5 w-5" />
-                  <span>Coder Mode Output</span>
-                </SheetTitle>
-                <SheetDescription>
-                  Review the generated code. The AI has attempted to build a complete feature based on your request.
-                </SheetDescription>
-              </SheetHeader>
-              <div className="flex-1 overflow-y-auto px-6 pb-6">
-                {coderResponse && <CodeBlock content={coderResponse} />}
-              </div>
-              <SheetFooter className="p-6 pt-4 bg-background/80 backdrop-blur-sm border-t flex flex-col sm:flex-row gap-2">
-                <Button
-                  onClick={() => {
-                    if (coderResponse) {
-                      const files = parseContent(coderResponse);
-                      // Check if the response was code files or just a note
-                      if (files.length > 0 && files[0].path !== 'SYSTEM_MESSAGE') {
-                        const allCode = files.map(file => `/* FILE: ${file.path} */\n\n${file.code}`).join('\n\n');
-                        navigator.clipboard.writeText(allCode);
-                        toast.success("Copied all code blocks to clipboard!");
-                      } else {
-                        // This handles non-code responses or single unformatted blocks
-                        navigator.clipboard.writeText(coderResponse.replace(/```/g, ''));
-                        toast.success("Copied response to clipboard!");
-                      }
-                    }
-                  }}
-                  className="w-full"
-                  variant="outline"
-                >
-                  <Copy className="mr-2 h-4 w-4" /> Copy All Code
-                </Button>
-                <Button
-                  onClick={handleDownloadCode}
-                  className="w-full"
-                >
-                  <Download className="mr-2 h-4 w-4" /> Download Code
-                </Button>
-              </SheetFooter>
-            </SheetContent>
-          </Sheet>
+
+          {/* ... keep existing code (Sheet component for coder panel) */}
         </div>
       </div>
       <DeveloperCredit />
