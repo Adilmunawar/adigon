@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/sonner";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -30,41 +30,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import DeveloperCredit from "./DeveloperCredit";
 
-const formSchema = z.object({
-  isSignIn: z.boolean(),
-  email: z.string().email({ message: "Invalid email address." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
-  name: z.string().min(2, "Name must be at least 2 characters.").optional(),
+const authSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  name: z.string().optional(),
   gender: z.enum(["male", "female", "other", "prefer_not_to_say"]).optional(),
-}).superRefine((data, ctx) => {
-  if (!data.isSignIn) { // This is for Sign Up
-    if (!data.name) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Name is required.",
-        path: ["name"],
-      });
-    }
-    if (!data.gender) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Please select a gender.",
-        path: ["gender"],
-      });
-    }
-  }
 });
 
-export default function AuthForm() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSignIn, setIsSignIn] = useState(true);
+type AuthFormData = z.infer<typeof authSchema>;
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+export default function AuthForm() {
+  const [isSignIn, setIsSignIn] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authSuccess, setAuthSuccess] = useState<string | null>(null);
+
+  const form = useForm<AuthFormData>({
+    resolver: zodResolver(authSchema),
     defaultValues: {
-      isSignIn: true,
       email: "",
       password: "",
       name: "",
@@ -73,125 +60,206 @@ export default function AuthForm() {
   });
 
   const toggleFormType = () => {
-    const newIsSignIn = !isSignIn;
-    setIsSignIn(newIsSignIn);
-    form.reset();
-    form.setValue("isSignIn", newIsSignIn);
+    setIsSignIn(!isSignIn);
+    setAuthError(null);
+    setAuthSuccess(null);
+    form.reset({
+      email: "",
+      password: "",
+      name: "",
+      gender: undefined,
+    });
   };
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsSubmitting(true);
-    console.log('Attempting authentication with:', values.email);
+  const handleAuthError = (error: any) => {
+    console.error('🚨 Auth error:', error);
     
+    const errorMessage = error?.message || 'An unexpected error occurred';
+    
+    // Handle common authentication errors with user-friendly messages
+    if (errorMessage.includes('Invalid login credentials')) {
+      return 'Invalid email or password. Please check your credentials and try again.';
+    } else if (errorMessage.includes('Email not confirmed')) {
+      return 'Please check your email and click the confirmation link before signing in.';
+    } else if (errorMessage.includes('User already registered')) {
+      return 'An account with this email already exists. Please sign in instead.';
+    } else if (errorMessage.includes('Signup disabled')) {
+      return 'Account registration is currently disabled. Please contact support.';
+    } else if (errorMessage.includes('Too many requests')) {
+      return 'Too many login attempts. Please wait a moment and try again.';
+    } else if (errorMessage.includes('Password should be at least')) {
+      return 'Password must be at least 6 characters long.';
+    } else if (errorMessage.includes('Unable to validate email address')) {
+      return 'Please enter a valid email address.';
+    } else if (errorMessage.includes('Database connection')) {
+      return 'Connection issue. Please try again in a moment.';
+    }
+    
+    return errorMessage;
+  };
+
+  const onSubmit = async (values: AuthFormData) => {
+    setIsSubmitting(true);
+    setAuthError(null);
+    setAuthSuccess(null);
+
     try {
-      if (values.isSignIn) {
+      console.log(`🔄 Attempting ${isSignIn ? 'sign in' : 'sign up'} for:`, values.email);
+
+      if (isSignIn) {
+        // Sign in flow
         const { data, error } = await supabase.auth.signInWithPassword({
           email: values.email,
           password: values.password,
         });
-        
+
         if (error) {
-          console.error('Sign in error:', error);
+          setAuthError(handleAuthError(error));
+          return;
+        }
+
+        if (data.user) {
+          console.log('✅ Sign in successful');
+          setAuthSuccess('Welcome back! Signing you in...');
+          toast.success("Successfully signed in!");
           
-          // Handle specific error cases
-          if (error.message.toLowerCase().includes('invalid login credentials') || 
-              error.message.toLowerCase().includes('invalid email or password')) {
-            toast.error("Invalid email or password. Please check your credentials and try again.");
-          } else if (error.message.toLowerCase().includes('email not confirmed')) {
-            toast.error("Please check your email and click the confirmation link before signing in.");
-          } else if (error.message.toLowerCase().includes('signup disabled')) {
-            toast.error("Sign up is currently disabled. Please contact support.");
-          } else if (error.message.toLowerCase().includes('too many requests')) {
-            toast.error("Too many login attempts. Please wait a moment and try again.");
-          } else {
-            toast.error(`Login failed: ${error.message}`);
-          }
-        } else if (data.user) {
-          console.log('Sign in successful:', data.user.email);
-          toast.success("Signed in successfully!");
-          
-          // Clear form on successful login
+          // Clear form after successful login
           form.reset();
         }
       } else {
+        // Sign up flow with validation
+        if (!values.name?.trim()) {
+          setAuthError('Name is required for registration');
+          return;
+        }
+        
+        if (!values.gender) {
+          setAuthError('Please select your gender');
+          return;
+        }
+
         const { data, error } = await supabase.auth.signUp({
           email: values.email,
           password: values.password,
           options: {
             data: {
-              name: values.name,
+              name: values.name.trim(),
               gender: values.gender,
             },
             emailRedirectTo: `${window.location.origin}/`,
-          }
+          },
         });
-        
+
         if (error) {
-          console.error('Sign up error:', error);
+          setAuthError(handleAuthError(error));
+          return;
+        }
+
+        if (data.user) {
+          console.log('✅ Sign up successful');
           
-          if (error.message.toLowerCase().includes('user already registered')) {
-            toast.error("An account with this email already exists. Please sign in instead.");
-          } else if (error.message.toLowerCase().includes('signup disabled')) {
-            toast.error("Sign up is currently disabled. Please contact support.");
+          if (data.user.email_confirmed_at) {
+            setAuthSuccess('Account created successfully! You can now sign in.');
+            toast.success("Account created! You can now sign in.");
           } else {
-            toast.error(`Sign up failed: ${error.message}`);
+            setAuthSuccess('Account created! Please check your email for the confirmation link.');
+            toast.success("Account created! Please check your email to confirm your account.");
           }
-        } else if (data.user) {
-          console.log('Sign up successful:', data.user.email);
-          toast.success("Sign up successful! Please check your email for the confirmation link.");
           
-          // Clear form on successful signup
+          // Clear form and switch to sign in
           form.reset();
+          setTimeout(() => {
+            setIsSignIn(true);
+            setAuthSuccess(null);
+          }, 3000);
         }
       }
-    } catch (error) {
-      console.error('Authentication error:', error);
-      toast.error("An unexpected error occurred. Please try again.");
+    } catch (error: any) {
+      console.error('🚨 Unexpected auth error:', error);
+      setAuthError('An unexpected error occurred. Please try again.');
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
-  }
+  };
 
   return (
-    <div className="w-full max-w-sm flex flex-col items-center">
-      <Card className="w-full bg-background/80 backdrop-blur-sm border-border/50 shadow-2xl shadow-primary/10 animate-scale-in">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold">{isSignIn ? "Sign In" : "Sign Up"}</CardTitle>
-          <CardDescription>
-            {isSignIn ? "to continue to your chat history" : "to create an account"}
+    <div className="w-full max-w-md mx-auto">
+      <Card className="bg-background/95 backdrop-blur-sm border border-border/50 shadow-xl">
+        <CardHeader className="text-center space-y-2">
+          <CardTitle className="text-2xl font-bold tracking-tight">
+            {isSignIn ? "Welcome Back" : "Create Account"}
+          </CardTitle>
+          <CardDescription className="text-muted-foreground">
+            {isSignIn 
+              ? "Sign in to access your account" 
+              : "Sign up to get started with your account"
+            }
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        
+        <CardContent className="space-y-4">
+          {/* Success Alert */}
+          {authSuccess && (
+            <Alert className="border-green-200 bg-green-50 text-green-800">
+              <CheckCircle className="h-4 w-4" />
+              <AlertDescription>{authSuccess}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Error Alert */}
+          {authError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{authError}</AlertDescription>
+            </Alert>
+          )}
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {/* Name field for sign up */}
               {!isSignIn && (
                 <FormField
                   control={form.control}
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Name</FormLabel>
+                      <FormLabel>Full Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="Adil Munawar" {...field} />
+                        <Input 
+                          placeholder="Enter your full name" 
+                          {...field}
+                          disabled={isSubmitting}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               )}
+
+              {/* Email field */}
               <FormField
                 control={form.control}
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Email Address</FormLabel>
                     <FormControl>
-                      <Input placeholder="you@example.com" {...field} />
+                      <Input 
+                        type="email"
+                        placeholder="Enter your email" 
+                        {...field}
+                        disabled={isSubmitting}
+                        autoComplete="email"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              {/* Password field */}
               <FormField
                 control={form.control}
                 name="password"
@@ -199,20 +267,48 @@ export default function AuthForm() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
+                      <div className="relative">
+                        <Input 
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Enter your password" 
+                          {...field}
+                          disabled={isSubmitting}
+                          autoComplete={isSignIn ? "current-password" : "new-password"}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowPassword(!showPassword)}
+                          disabled={isSubmitting}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              {/* Gender field for sign up */}
               {!isSignIn && (
-                 <FormField
+                <FormField
                   control={form.control}
                   name="gender"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Gender</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                        disabled={isSubmitting}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select your gender" />
@@ -230,20 +326,37 @@ export default function AuthForm() {
                   )}
                 />
               )}
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+
+              {/* Submit button */}
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isSubmitting}
+                size="lg"
+              >
                 {isSubmitting && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
-                {isSignIn ? "Sign In" : "Sign Up"}
+                {isSignIn ? "Sign In" : "Create Account"}
               </Button>
             </form>
           </Form>
+
+          {/* Toggle between sign in/up */}
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              {isSignIn ? "Don't have an account?" : "Already have an account?"}{" "}
+              <Button 
+                variant="link" 
+                onClick={toggleFormType} 
+                className="p-0 h-auto font-semibold text-primary hover:underline"
+                disabled={isSubmitting}
+              >
+                {isSignIn ? "Sign up" : "Sign in"}
+              </Button>
+            </p>
+          </div>
         </CardContent>
       </Card>
-      <div className="mt-6 text-center text-sm text-muted-foreground">
-        {isSignIn ? "Don't have an account?" : "Already have an account?"}{" "}
-        <Button variant="link" onClick={toggleFormType} className="p-0 h-auto font-semibold text-primary hover:text-primary/90 transition-colors">
-          {isSignIn ? "Sign Up" : "Sign In"}
-        </Button>
-      </div>
+
       <div className="mt-8">
         <DeveloperCredit />
       </div>
