@@ -74,7 +74,7 @@ const Index = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [tempApiKey, setTempApiKey] = useState("");
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const [isCoderMode, setIsCoderMode] = useState(false);
@@ -666,7 +666,7 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
                 <span className="text-sm text-muted-foreground hidden sm:inline">
                   {user.email}
                 </span>
-                <Button variant="outline" size="icon" onClick={logout} className="rounded-full" aria-label="Logout">
+                <Button variant="outline" size="icon" onClick={signOut} className="rounded-full" aria-label="Logout">
                   <LogOut size={16} />
                 </Button>
               </div>
