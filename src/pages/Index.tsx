@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, LoaderCircle, Bot, LogOut, Code, Upload, Copy, X, Paperclip, Image, Globe, Sparkles, BrainCircuit, Download } from "lucide-react";
+import { Send, LoaderCircle, Bot, Upload, X, Paperclip, Image, Globe, Sparkles, BrainCircuit, Code, Download } from "lucide-react";
 import ChatMessage, { Message } from "@/components/ChatMessage";
 import { runChat } from "@/lib/gemini";
 import { toast } from "@/components/ui/sonner";
 import ThreeScene from "@/components/ThreeScene";
 import AppSidebar from "@/components/AppSidebar";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { useAuth } from "@/providers/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -16,6 +16,9 @@ import CodeBlock, { parseContent } from "@/components/CodeBlock";
 import * as pdfjsLib from 'pdfjs-dist';
 import JSZip from 'jszip';
 import DeveloperCredit from "@/components/DeveloperCredit";
+import UserHeader from "@/components/UserHeader";
+import ChatInterface from "@/components/ChatInterface";
+import InputArea from "@/components/InputArea";
 
 const examplePrompts = [
   { text: "generate image: a futuristic city at night", icon: Image },
@@ -95,7 +98,7 @@ const Index = () => {
         .eq('id', user.id)
         .single();
       
-      if (error && error.code !== 'PGRST116') { // PGRST116: "exact one row not found"
+      if (error && error.code !== 'PGRST116') {
         console.error('Error fetching profile:', error);
         toast.error('Could not fetch user profile.');
         return null;
@@ -125,7 +128,6 @@ const Index = () => {
   });
 
   useEffect(() => {
-    // Setup PDF.js worker from CDN
     pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.mjs`;
   }, []);
   
@@ -133,7 +135,7 @@ const Index = () => {
     let interval: NodeJS.Timeout | undefined;
     if (isLoading) {
       let i = 0;
-      setLoadingMessage(currentLoadingSet[0]); // Reset to first message on new load
+      setLoadingMessage(currentLoadingSet[0]);
       interval = setInterval(() => {
         i = (i + 1) % currentLoadingSet.length;
         setLoadingMessage(currentLoadingSet[i]);
@@ -275,7 +277,7 @@ const Index = () => {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 10 * 1024 * 1024) { // Increased to 10MB for PDFs
+      if (file.size > 10 * 1024 * 1024) {
         toast.error("File is too large. Please use a file smaller than 10MB.");
         return;
       }
@@ -292,7 +294,6 @@ const Index = () => {
       setAttachedFile(file);
       toast.info(`Attached file: ${file.name}`);
     }
-    // Reset input value to allow selecting the same file again
     if (event.target) {
       event.target.value = "";
     }
@@ -383,7 +384,6 @@ const Index = () => {
         const objectUrl = URL.createObjectURL(attachedFile);
         userMessage = { role: "user", parts: [{ text: userInput }], imageUrl: objectUrl };
         fileForApi = attachedFile;
-        // apiPrompt is just userInput for images, file is passed separately
       } else if (attachedFile.type === 'application/pdf') {
         try {
           const fileContent = await extractTextFromPdf(attachedFile);
@@ -397,12 +397,12 @@ const Index = () => {
           setAttachedFile(null);
           return;
         }
-      } else { // Treat as text file by default
+      } else {
         try {
           const fileContent = await attachedFile.text();
           const messageText = `[ATTACHMENT: ${attachedFile.name}]\n${fileContent}\n[/ATTACHMENT]\n\n${userInput}`;
           userMessage = { role: "user", parts: [{ text: messageText }] };
-          apiPrompt = messageText; // For text files, the full text is the prompt
+          apiPrompt = messageText;
         } catch (error) {
           console.error("Error reading file:", error);
           toast.error("Could not read the attached file. It might not be a plain text file.");
@@ -421,7 +421,7 @@ const Index = () => {
     if (!promptOverride) {
       setInput("");
     }
-    setAttachedFile(null); // Clear file after processing
+    setAttachedFile(null);
     
     let finalApiPrompt = apiPrompt;
     
@@ -594,7 +594,6 @@ Create a masterpiece-quality SVG that exceeds expectations:`;
             code: modelMessage.code ?? null,
         });
 
-        // Background task to update profile
         (async () => {
           const updatedHistory = [...newMessages, modelMessage];
           const profileExtractionPrompt = `Analyze the following conversation. Extract any new or updated personal facts about the user (e.g., name, age, city, interests, profession, relationships, dislikes, etc.). Structure the extracted information as a single, flat JSON object. If no new information is found, respond with an empty JSON object {}. Do not include any explanation, conversational text, or markdown formatting. Only output the raw JSON object.
@@ -609,19 +608,15 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
             const extractedDataString = await runChat(profileExtractionPrompt, []);
             const extractedData = JSON.parse(extractedDataString);
             
-            // First, ensure extractedData is a non-null, non-array object.
             if (!extractedData || typeof extractedData !== 'object' || Array.isArray(extractedData)) {
               console.log("Profile extraction did not produce a valid object.", { extractedData });
-              return; // Exit since we don't have a valid object to merge.
+              return;
             }
 
-            // Now, TypeScript knows `extractedData` is an object.
-            // Let's also ensure currentProfileData is an object.
             const currentProfileData = (userProfile && typeof userProfile === 'object' && !Array.isArray(userProfile)) 
               ? userProfile 
               : {};
             
-            // Only proceed if there's new data.
             if (Object.keys(extractedData).length > 0) {
               const newProfileData = { ...currentProfileData, ...extractedData };
               
@@ -660,7 +655,7 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen bg-transparent text-foreground font-sans overflow-hidden">
+      <div className="flex h-screen w-full bg-background overflow-hidden">
         <AppSidebar
           isSettingsOpen={isSettingsOpen}
           setIsSettingsOpen={setIsSettingsOpen}
@@ -673,177 +668,61 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
           onSelectConversation={handleSelectConversation}
           onDeleteConversation={handleDeleteConversation}
         />
-        <div className="flex flex-col flex-1 overflow-hidden relative">
-          {/* Fixed Header */}
-          <header className="fixed top-0 right-0 left-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50 px-6 py-4">
-            <div className="flex items-center justify-between w-full">
-              <SidebarTrigger />
-              {user && (
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-muted-foreground hidden sm:inline">
-                    {user.email}
-                  </span>
-                  <Button variant="outline" size="icon" onClick={signOut} className="rounded-full" aria-label="Logout">
-                    <LogOut size={16} />
-                  </Button>
-                </div>
-              )}
-            </div>
-          </header>
-
-          {/* Main Content with proper padding to account for fixed header */}
-          <main className="flex-1 overflow-y-auto pt-20 pb-6 px-6">
-            <div className="max-w-4xl mx-auto">
-              {messages.map((msg, index) => (
-                <ChatMessage key={index} message={msg} onReviewCode={handleReviewCode} />
-              ))}
-
-              {isLoading && (
-                <div className="group flex animate-fade-in-up items-start gap-3 md:gap-4 py-4">
-                  <div className="flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary ring-2 ring-primary/40">
-                    <Bot size={24} />
-                  </div>
-                  <div className="rounded-2xl px-4 md:px-5 py-3 text-base shadow-lg transition-all duration-300 group-hover:shadow-primary/20 border border-white/10 bg-secondary/50 text-secondary-foreground backdrop-blur-md flex items-center">
-                    <LoaderCircle size={20} className="animate-spin mr-3" />
-                    <p>{loadingMessage}</p>
-                  </div>
-                </div>
-              )}
-
-              {messages.length === 0 && !isLoading && (
-                <div className="py-8 text-center animate-fade-in-up">
-                    <ThreeScene />
-                    <h2 className="text-2xl font-bold text-foreground mt-8 mb-2">Welcome to AdiGon</h2>
-                    <p className="text-lg text-muted-foreground mb-8">What can I help you create today?</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
-                        {examplePrompts.map((prompt) => {
-                          const Icon = prompt.icon;
-                          return (
-                            <button 
-                                key={prompt.text}
-                                onClick={() => handleSendMessage(prompt.text)}
-                                className="group p-4 bg-secondary/50 border border-border rounded-xl hover:bg-primary/10 hover:border-primary/50 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/20 flex flex-col items-center text-center gap-3"
-                            >
-                                <div className="bg-primary/10 p-3 rounded-full text-primary">
-                                  <Icon size={24} className="transition-transform duration-300 group-hover:scale-110" />
-                                </div>
-                                <span className="font-medium text-sm text-foreground">{prompt.text}</span>
-                            </button>
-                          );
-                        })}
-                    </div>
-                </div>
-              )}
-
-              <div ref={messagesEndRef} />
-            </div>
-          </main>
-
-          {/* Fixed Footer */}
-          <footer className="fixed bottom-0 left-0 right-0 z-40 p-4 border-t border-border/50 bg-background/80 backdrop-blur-lg">
-            <div className="max-w-4xl mx-auto">
-              {attachedFile && (
-                <div className="mb-2 flex items-center justify-between rounded-lg border bg-muted p-2 text-sm">
-                  <div className="flex items-center gap-2 overflow-hidden">
-                    <Paperclip className="h-4 w-4 flex-shrink-0" />
-                    <span className="truncate font-medium">{attachedFile.name}</span>
-                  </div>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => setAttachedFile(null)}>
-                    <X size={16} />
-                    <span className="sr-only">Remove file</span>
-                  </Button>
-                </div>
-              )}
-              <form onSubmit={onFormSubmit} className="flex gap-2 items-center">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  type="button"
-                  onClick={handleAttachFileClick}
-                  disabled={isLoading || !user}
-                  className="h-12 w-12 rounded-xl flex-shrink-0"
-                  aria-label="Attach file"
-                >
-                  <Upload size={20} />
-                </Button>
-                <Button
-                  variant={isCoderMode ? "secondary" : "outline"}
-                  size="icon"
-                  type="button"
-                  onClick={() => {
-                      setIsCoderMode(!isCoderMode);
-                      if (!isCoderMode && isDeepSearchMode) {
-                          setIsDeepSearchMode(false);
-                          toast.info("Deep Search disabled while Coder Mode is active.");
-                      }
-                  }}
-                  disabled={isLoading || !user}
-                  className="h-12 w-12 rounded-xl flex-shrink-0"
-                  aria-label="Toggle Coder Mode"
-                >
-                  <Code size={20} />
-                </Button>
-                <Button
-                  variant={isDeepSearchMode ? "secondary" : "outline"}
-                  size="icon"
-                  type="button"
-                  onClick={() => {
-                      setIsDeepSearchMode(!isDeepSearchMode);
-                      if (!isDeepSearchMode && isCoderMode) {
-                          setIsCoderMode(false);
-                          toast.info("Coder Mode disabled while Deep Search is active.");
-                      }
-                  }}
-                  disabled={isLoading || !user}
-                  className="h-12 w-12 rounded-xl flex-shrink-0"
-                  aria-label="Toggle Deep Search Mode"
-                >
-                  <Globe size={20} />
-                </Button>
-                <Input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder={
-                    isDeepSearchMode
-                      ? "Deep Search: Ask anything to search online..."
-                      : isCoderMode
-                      ? "Coder Mode: Describe the application to build..."
-                      : "Type a message or a prompt for a high-quality image..."
-                  }
-                  disabled={isLoading || !user}
-                  className="flex-1 bg-secondary/80 border-border/80 focus:ring-2 focus:ring-primary h-12 text-base px-4 rounded-xl transition-all duration-300 focus:bg-secondary focus:scale-[1.01] placeholder:text-muted-foreground/80"
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  type="button"
-                  onClick={handleImageGeneration}
-                  disabled={isLoading || !user || !input.trim()}
-                  className="h-12 w-12 rounded-xl flex-shrink-0"
-                  aria-label="Generate High-Quality Image"
-                >
-                  <Image size={20} />
-                </Button>
-                <Button type="submit" disabled={(isLoading || (!input.trim() && !attachedFile)) || !user} size="icon" className="h-12 w-12 rounded-xl bg-primary text-primary-foreground transition-all duration-300 hover:scale-110 hover:brightness-110 active:scale-105 [&_svg]:size-6 shadow-lg shadow-primary/30">
-                  {isLoading && messages.length > 0 ? (
-                    <LoaderCircle className="animate-spin" />
-                  ) : (
-                    <Send />
-                  )}
-                  <span className="sr-only">Send</span>
-                </Button>
-              </form>
-            </div>
-          </footer>
-
-          {/* ... keep existing code (Sheet component for coder panel) */}
+        
+        <div className="flex flex-col flex-1 min-w-0">
+          <UserHeader user={user} signOut={signOut} />
+          
+          <ChatInterface
+            messages={messages}
+            isLoading={isLoading}
+            loadingMessage={loadingMessage}
+            examplePrompts={examplePrompts}
+            handleSendMessage={handleSendMessage}
+            onReviewCode={handleReviewCode}
+            messagesEndRef={messagesEndRef}
+          />
+          
+          <InputArea
+            input={input}
+            setInput={setInput}
+            attachedFile={attachedFile}
+            setAttachedFile={setAttachedFile}
+            isLoading={isLoading}
+            user={user}
+            isCoderMode={isCoderMode}
+            setIsCoderMode={setIsCoderMode}
+            isDeepSearchMode={isDeepSearchMode}
+            setIsDeepSearchMode={setIsDeepSearchMode}
+            handleAttachFileClick={handleAttachFileClick}
+            handleFileSelect={handleFileSelect}
+            handleImageGeneration={handleImageGeneration}
+            onFormSubmit={onFormSubmit}
+            fileInputRef={fileInputRef}
+          />
         </div>
+
+        <Sheet open={isCoderPanelOpen} onOpenChange={setIsCoderPanelOpen}>
+          <SheetContent side="right" className="w-full sm:w-[700px] bg-background border-border">
+            <SheetHeader>
+              <SheetTitle className="flex items-center gap-2">
+                <Code size={20} />
+                Generated Code
+              </SheetTitle>
+              <SheetDescription>
+                Review and download your generated code files.
+              </SheetDescription>
+            </SheetHeader>
+            <div className="mt-6 h-[calc(100vh-180px)] overflow-auto">
+              {coderResponse && <CodeBlock content={coderResponse} />}
+            </div>
+            <SheetFooter className="border-t pt-4">
+              <Button onClick={handleDownloadCode} className="w-full">
+                <Download size={16} className="mr-2" />
+                Download as ZIP
+              </Button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
       </div>
       <DeveloperCredit />
     </SidebarProvider>
