@@ -32,19 +32,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         console.log('Setting up auth state listener...');
         
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            console.log('Auth state changed:', event, session?.user?.email);
-            setSession(session);
-            setUser(session?.user ?? null);
-            setLoading(false);
-        });
+        // Get initial session first
+        const getInitialSession = async () => {
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                if (error) {
+                    console.error('Error getting initial session:', error);
+                } else {
+                    console.log('Initial session:', session?.user?.email || 'No session');
+                    setSession(session);
+                    setUser(session?.user ?? null);
+                }
+            } catch (error) {
+                console.error('Error in getSession:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-        // Get initial session
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            console.log('Initial session:', session?.user?.email);
+        getInitialSession();
+        
+        // Set up auth state listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('Auth state changed:', event, session?.user?.email || 'No session');
+            
             setSession(session);
             setUser(session?.user ?? null);
-            setLoading(false);
+            
+            // Handle different auth events
+            if (event === 'SIGNED_IN' && session) {
+                console.log('User signed in successfully');
+                setLoading(false);
+            } else if (event === 'SIGNED_OUT') {
+                console.log('User signed out');
+                setLoading(false);
+            } else if (event === 'TOKEN_REFRESHED' && session) {
+                console.log('Token refreshed');
+                setLoading(false);
+            }
         });
 
         return () => {
@@ -53,31 +78,49 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     useEffect(() => {
-        // Only handle redirects after loading is complete and we have auth state
-        if (loading) return;
+        // Only handle redirects after loading is complete
+        if (loading) {
+            console.log('Still loading, skipping redirect logic');
+            return;
+        }
 
         const currentPath = location.pathname;
         console.log('Checking navigation for:', currentPath, 'Session exists:', !!session);
 
-        // If user is authenticated and on auth page, redirect to home
-        if (session && currentPath === '/auth') {
-            console.log('Authenticated user on auth page, redirecting to home');
-            navigate('/');
-            return;
-        }
+        // Small delay to ensure auth state is fully settled
+        const timeoutId = setTimeout(() => {
+            // If user is authenticated and on auth page, redirect to home
+            if (session && currentPath === '/auth') {
+                console.log('Authenticated user on auth page, redirecting to home');
+                navigate('/', { replace: true });
+                return;
+            }
 
-        // If user is not authenticated and not on auth page, redirect to auth
-        if (!session && currentPath !== '/auth') {
-            console.log('Unauthenticated user, redirecting to auth');
-            navigate('/auth');
-            return;
-        }
+            // If user is not authenticated and not on auth page, redirect to auth
+            if (!session && currentPath !== '/auth') {
+                console.log('Unauthenticated user, redirecting to auth');
+                navigate('/auth', { replace: true });
+                return;
+            }
+        }, 100);
+
+        return () => clearTimeout(timeoutId);
     }, [session, loading, navigate, location.pathname]);
 
     const logout = async () => {
         console.log('Logging out...');
-        await supabase.auth.signOut();
-        navigate('/auth');
+        setLoading(true);
+        try {
+            const { error } = await supabase.auth.signOut();
+            if (error) {
+                console.error('Logout error:', error);
+            }
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally {
+            setLoading(false);
+            navigate('/auth', { replace: true });
+        }
     };
 
     const value = {
@@ -87,6 +130,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         logout,
     };
 
+    // Show loading screen only when initially loading and not on auth page
     if (loading && location.pathname !== '/auth') {
         return (
             <div className="flex items-center justify-center h-screen bg-background">

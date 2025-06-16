@@ -83,45 +83,73 @@ export default function AuthForm() {
     setIsSubmitting(true);
     console.log('Attempting authentication with:', values.email);
     
-    if (values.isSignIn) {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: values.email,
-        password: values.password,
-      });
-      
-      if (error) {
-        console.error('Sign in error:', error);
-        if (error.message.includes('Invalid login credentials')) {
-          toast.error("Invalid email or password. Please check your credentials and try again.");
-        } else if (error.message.includes('Email not confirmed')) {
-          toast.error("Please check your email and click the confirmation link before signing in.");
-        } else {
-          toast.error(error.message);
+    try {
+      if (values.isSignIn) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: values.email,
+          password: values.password,
+        });
+        
+        if (error) {
+          console.error('Sign in error:', error);
+          
+          // Handle specific error cases
+          if (error.message.toLowerCase().includes('invalid login credentials') || 
+              error.message.toLowerCase().includes('invalid email or password')) {
+            toast.error("Invalid email or password. Please check your credentials and try again.");
+          } else if (error.message.toLowerCase().includes('email not confirmed')) {
+            toast.error("Please check your email and click the confirmation link before signing in.");
+          } else if (error.message.toLowerCase().includes('signup disabled')) {
+            toast.error("Sign up is currently disabled. Please contact support.");
+          } else if (error.message.toLowerCase().includes('too many requests')) {
+            toast.error("Too many login attempts. Please wait a moment and try again.");
+          } else {
+            toast.error(`Login failed: ${error.message}`);
+          }
+        } else if (data.user) {
+          console.log('Sign in successful:', data.user.email);
+          toast.success("Signed in successfully!");
+          
+          // Clear form on successful login
+          form.reset();
         }
       } else {
-        console.log('Sign in successful:', data.user?.email);
-        toast.success("Signed in successfully!");
-      }
-    } else {
-      const { error } = await supabase.auth.signUp({
-        email: values.email,
-        password: values.password,
-        options: {
-          data: {
-            name: values.name,
-            gender: values.gender,
-          },
-          emailRedirectTo: `${window.location.origin}/`,
+        const { data, error } = await supabase.auth.signUp({
+          email: values.email,
+          password: values.password,
+          options: {
+            data: {
+              name: values.name,
+              gender: values.gender,
+            },
+            emailRedirectTo: `${window.location.origin}/`,
+          }
+        });
+        
+        if (error) {
+          console.error('Sign up error:', error);
+          
+          if (error.message.toLowerCase().includes('user already registered')) {
+            toast.error("An account with this email already exists. Please sign in instead.");
+          } else if (error.message.toLowerCase().includes('signup disabled')) {
+            toast.error("Sign up is currently disabled. Please contact support.");
+          } else {
+            toast.error(`Sign up failed: ${error.message}`);
+          }
+        } else if (data.user) {
+          console.log('Sign up successful:', data.user.email);
+          toast.success("Sign up successful! Please check your email for the confirmation link.");
+          
+          // Clear form on successful signup
+          form.reset();
         }
-      });
-      if (error) {
-        console.error('Sign up error:', error);
-        toast.error(error.message);
-      } else {
-        toast.info("Check your email for the confirmation link!");
       }
+    } catch (error) {
+      console.error('Authentication error:', error);
+      toast.error("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   }
 
   return (
