@@ -30,13 +30,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const location = useLocation();
 
     useEffect(() => {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        console.log('Setting up auth state listener...');
+        
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            console.log('Auth state changed:', event, session?.user?.email);
             setSession(session);
             setUser(session?.user ?? null);
             setLoading(false);
         });
 
+        // Get initial session
         supabase.auth.getSession().then(({ data: { session } }) => {
+            console.log('Initial session:', session?.user?.email);
             setSession(session);
             setUser(session?.user ?? null);
             setLoading(false);
@@ -48,15 +53,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     useEffect(() => {
-        if (!loading && !session && location.pathname !== '/auth') {
-            navigate('/auth');
-        }
-        if (!loading && session && location.pathname === '/auth') {
+        // Only handle redirects after loading is complete and we have auth state
+        if (loading) return;
+
+        const currentPath = location.pathname;
+        console.log('Checking navigation for:', currentPath, 'Session exists:', !!session);
+
+        // If user is authenticated and on auth page, redirect to home
+        if (session && currentPath === '/auth') {
+            console.log('Authenticated user on auth page, redirecting to home');
             navigate('/');
+            return;
+        }
+
+        // If user is not authenticated and not on auth page, redirect to auth
+        if (!session && currentPath !== '/auth') {
+            console.log('Unauthenticated user, redirecting to auth');
+            navigate('/auth');
+            return;
         }
     }, [session, loading, navigate, location.pathname]);
 
     const logout = async () => {
+        console.log('Logging out...');
         await supabase.auth.signOut();
         navigate('/auth');
     };

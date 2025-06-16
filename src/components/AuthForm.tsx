@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -80,14 +81,25 @@ export default function AuthForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
+    console.log('Attempting authentication with:', values.email);
+    
     if (values.isSignIn) {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: values.email,
         password: values.password,
       });
+      
       if (error) {
-        toast.error(error.message);
+        console.error('Sign in error:', error);
+        if (error.message.includes('Invalid login credentials')) {
+          toast.error("Invalid email or password. Please check your credentials and try again.");
+        } else if (error.message.includes('Email not confirmed')) {
+          toast.error("Please check your email and click the confirmation link before signing in.");
+        } else {
+          toast.error(error.message);
+        }
       } else {
+        console.log('Sign in successful:', data.user?.email);
         toast.success("Signed in successfully!");
       }
     } else {
@@ -103,6 +115,7 @@ export default function AuthForm() {
         }
       });
       if (error) {
+        console.error('Sign up error:', error);
         toast.error(error.message);
       } else {
         toast.info("Check your email for the confirmation link!");
