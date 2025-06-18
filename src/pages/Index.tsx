@@ -618,11 +618,14 @@ Create a masterpiece-quality SVG that exceeds expectations:`;
           parts: msg.parts,
         }));
         
-        // Pass user settings to the API
+        // Pass user settings to the API with proper type checking
         const userSettings = {
-          responseLength: userProfile?.response_length || 'adaptive',
-          codeDetailLevel: userProfile?.code_detail_level || 'comprehensive',
-          aiCreativity: userProfile?.ai_creativity || 0.7,
+          responseLength: (userProfile && typeof userProfile === 'object' && 'response_length' in userProfile) 
+            ? userProfile.response_length : 'adaptive',
+          codeDetailLevel: (userProfile && typeof userProfile === 'object' && 'code_detail_level' in userProfile) 
+            ? userProfile.code_detail_level : 'comprehensive',
+          aiCreativity: (userProfile && typeof userProfile === 'object' && 'ai_creativity' in userProfile) 
+            ? userProfile.ai_creativity : 0.7,
         };
         
         const response = await runChat(finalApiPrompt, history, fileForApi, userSettings);

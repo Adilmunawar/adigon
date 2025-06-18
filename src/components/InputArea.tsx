@@ -42,7 +42,7 @@ const InputArea = ({
   fileInputRef
 }: InputAreaProps) => {
   const handleVoiceTranscription = (text: string) => {
-    setInput(prev => prev + (prev ? ' ' : '') + text);
+    setInput(input + (input ? ' ' : '') + text);
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
