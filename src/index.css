@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
@@ -97,6 +96,27 @@
   }
 }
 
+@keyframes bounce-subtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+@keyframes typing-dots {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-10px); }
+}
+
+@keyframes progress-bar {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -158,22 +178,23 @@
 
 @layer base {
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
 
   ::-webkit-scrollbar-track {
-    background: transparent;
+    background: hsl(var(--background));
+    border-radius: 10px;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted));
+    background: linear-gradient(45deg, hsl(var(--primary)/0.3), hsl(var(--accent)/0.3));
     border-radius: 10px;
-    border: 1px solid hsl(var(--background));
+    border: 2px solid hsl(var(--background));
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--primary) / 0.8);
+    background: linear-gradient(45deg, hsl(var(--primary)/0.6), hsl(var(--accent)/0.6));
   }
 
   ::-webkit-scrollbar-corner {
@@ -212,5 +233,39 @@
   
   .delay-700 {
     animation-delay: 0.7s;
+  }
+  
+  .animate-bounce-subtle {
+    animation: bounce-subtle 1s ease-in-out infinite;
+  }
+  
+  .animate-shake {
+    animation: shake 0.5s ease-in-out;
+  }
+  
+  .animate-typing-dots {
+    animation: typing-dots 1.4s ease-in-out infinite;
+  }
+  
+  .animate-progress {
+    animation: progress-bar 2s linear infinite;
+  }
+
+  .glass-card {
+    @apply bg-card/50 backdrop-blur-xl border border-border/50 shadow-xl;
+  }
+
+  .hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  }
+
+  .border-gradient {
+    background: linear-gradient(var(--background), var(--background)) padding-box,
+                linear-gradient(45deg, hsl(var(--primary)), hsl(var(--accent))) border-box;
+    border: 1px solid transparent;
   }
 }

@@ -87,6 +87,7 @@ const Index = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [lastCoderPrompt, setLastCoderPrompt] = useState<string>("");
   const [isDeepSearchMode, setIsDeepSearchMode] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
   const { data: userProfile, refetch: refetchProfile } = useQuery({
     queryKey: ['profile', user?.id],
@@ -251,6 +252,21 @@ const Index = () => {
     }
   }, [user]);
   
+  // Add scroll detection
+  useEffect(() => {
+    const chatContainer = document.querySelector('main');
+    if (!chatContainer) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainer;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      setShowScrollButton(!isNearBottom && messages.length > 0);
+    };
+
+    chatContainer.addEventListener('scroll', handleScroll);
+    return () => chatContainer.removeEventListener('scroll', handleScroll);
+  }, [messages.length]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -667,6 +683,21 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
           activeConversationId={activeConversationId}
           onSelectConversation={handleSelectConversation}
           onDeleteConversation={handleDeleteConversation}
+          userProfile={userProfile}
+          onUpdateProfile={async (data: any) => {
+            const { error } = await supabase
+              .from('profiles')
+              .update(data)
+              .eq('id', user?.id);
+            
+            if (error) {
+              toast.error('Failed to update settings.');
+              console.error(error);
+            } else {
+              toast.success('Settings updated successfully!');
+              await refetchProfile();
+            }
+          }}
         />
         
         <div className="flex flex-col flex-1 min-w-0">
@@ -680,6 +711,8 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
             handleSendMessage={handleSendMessage}
             onReviewCode={handleReviewCode}
             messagesEndRef={messagesEndRef}
+            showScrollButton={showScrollButton}
+            scrollToBottom={scrollToBottom}
           />
           
           <InputArea

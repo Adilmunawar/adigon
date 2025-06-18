@@ -1,8 +1,9 @@
 
 import React from 'react';
-import { Bot, LoaderCircle } from 'lucide-react';
+import { Bot, LoaderCircle, ArrowDown } from 'lucide-react';
 import ChatMessage, { Message } from '@/components/ChatMessage';
 import ThreeScene from '@/components/ThreeScene';
+import { Button } from '@/components/ui/button';
 
 interface ChatInterfaceProps {
   messages: Message[];
@@ -12,6 +13,8 @@ interface ChatInterfaceProps {
   handleSendMessage: (prompt: string) => void;
   onReviewCode: (code: string) => void;
   messagesEndRef: React.RefObject<HTMLDivElement>;
+  showScrollButton: boolean;
+  scrollToBottom: () => void;
 }
 
 const ChatInterface = ({
@@ -21,10 +24,12 @@ const ChatInterface = ({
   examplePrompts,
   handleSendMessage,
   onReviewCode,
-  messagesEndRef
+  messagesEndRef,
+  showScrollButton,
+  scrollToBottom
 }: ChatInterfaceProps) => {
   return (
-    <main className="flex-1 overflow-y-auto px-4 py-6">
+    <main className="flex-1 overflow-y-auto px-4 py-6 relative">
       <div className="max-w-4xl mx-auto space-y-6">
         {messages.map((msg, index) => (
           <div key={index} className="animate-fade-in-up" style={{ animationDelay: `${index * 50}ms` }}>
@@ -80,6 +85,18 @@ const ChatInterface = ({
 
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Scroll to bottom button */}
+      {showScrollButton && (
+        <Button
+          onClick={scrollToBottom}
+          size="icon"
+          className="fixed bottom-24 right-8 h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 z-10 animate-fade-in-up"
+          aria-label="Scroll to bottom"
+        >
+          <ArrowDown size={20} />
+        </Button>
+      )}
     </main>
   );
 };

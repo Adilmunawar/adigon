@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Sidebar,
@@ -29,6 +28,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSidebar } from './ui/sidebar';
+import AdvancedSettings from '@/components/AdvancedSettings';
 
 interface Conversation {
   id: string;
@@ -46,9 +46,11 @@ interface AppSidebarProps {
   activeConversationId: string | null;
   onSelectConversation: (id: string) => void;
   onDeleteConversation: (id: string) => void;
+  userProfile?: any;
+  onUpdateProfile?: (data: any) => void;
 }
 
-const AppSidebar = ({
+export default function AppSidebar({
   isSettingsOpen,
   setIsSettingsOpen,
   tempApiKey,
@@ -59,11 +61,16 @@ const AppSidebar = ({
   activeConversationId,
   onSelectConversation,
   onDeleteConversation,
-}: AppSidebarProps) => {
+  userProfile,
+  onUpdateProfile
+}: AppSidebarProps) {
   const { collapsed } = useSidebar();
 
   return (
-    <Sidebar className="border-r border-border/40">
+    <Sidebar 
+      variant="inset" 
+      className="border-r border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+    >
       <SidebarHeader className="border-b border-border/40">
         <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center text-primary shrink-0">
@@ -139,39 +146,22 @@ const AppSidebar = ({
             <SidebarMenu>
               <SidebarMenuItem>
                  <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-                    <DialogTrigger asChild>
-                      <SidebarMenuButton className="w-full">
-                          <Settings size={18} />
-                          {!collapsed && <span>Settings</span>}
-                      </SidebarMenuButton>
-                    </DialogTrigger>
-                    <DialogContent className="bg-background">
-                        <DialogHeader>
-                        <DialogTitle>Settings</DialogTitle>
+                    <DialogContent className="max-w-2xl max-h-[90vh]">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                          <Settings className="h-5 w-5" />
+                          Advanced Settings
+                        </DialogTitle>
                         <DialogDescription>
-                            Manage your API keys here. You can get your Runware API key from the{" "}
-                            <a href="https://runware.ai/" target="_blank" rel="noopener noreferrer" className="underline">Runware dashboard</a>.
+                          Customize your AI experience with advanced options and preferences.
                         </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="runware-api-key" className="text-right">
-                            Runware API Key
-                            </Label>
-                            <Input
-                            id="runware-api-key"
-                            value={tempApiKey}
-                            onChange={(e) => setTempApiKey(e.target.value)}
-                            className="col-span-3"
-                            type="password"
-                            />
-                        </div>
-                        </div>
-                        <DialogFooter>
-                        <Button onClick={handleSaveApiKey} className="bg-primary hover:bg-primary/90">Save changes</Button>
-                        </DialogFooter>
+                      </DialogHeader>
+                      <AdvancedSettings 
+                        userProfile={userProfile} 
+                        onUpdateProfile={onUpdateProfile || (() => {})} 
+                      />
                     </DialogContent>
-                </Dialog>
+                  </Dialog>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
@@ -179,6 +169,4 @@ const AppSidebar = ({
       </SidebarContent>
     </Sidebar>
   );
-};
-
-export default AppSidebar;
+}
