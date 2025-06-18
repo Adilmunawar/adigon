@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,7 +14,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/sonner";
-import { LoaderCircle, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
+import { LoaderCircle, Eye, EyeOff, AlertCircle, CheckCircle, Sparkles, Mail, Lock, User } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -185,52 +184,63 @@ export default function AuthForm() {
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <Card className="bg-background/95 backdrop-blur-sm border border-border/50 shadow-xl">
-        <CardHeader className="text-center space-y-2">
-          <CardTitle className="text-2xl font-bold tracking-tight">
-            {isSignIn ? "Welcome Back" : "Create Account"}
-          </CardTitle>
-          <CardDescription className="text-muted-foreground">
-            {isSignIn 
-              ? "Sign in to access your account" 
-              : "Sign up to get started with your account"
-            }
-          </CardDescription>
+      <Card className="glass-effect border border-border/30 shadow-2xl shadow-primary/10 animate-slide-in-right backdrop-blur-xl bg-background/80">
+        <CardHeader className="text-center space-y-4 pb-6">
+          {/* Logo/Icon with animation */}
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full flex items-center justify-center animate-glow">
+            <Sparkles className="w-8 h-8 text-primary animate-pulse" />
+          </div>
+          
+          <div className="space-y-2">
+            <CardTitle className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary via-accent to-primary text-transparent bg-clip-text animate-pulse">
+              {isSignIn ? "Welcome Back" : "Join AdiGon AI"}
+            </CardTitle>
+            <CardDescription className="text-muted-foreground text-base">
+              {isSignIn 
+                ? "Sign in to continue your AI journey" 
+                : "Create your account and unlock the future"
+              }
+            </CardDescription>
+          </div>
         </CardHeader>
         
-        <CardContent className="space-y-4">
-          {/* Success Alert */}
+        <CardContent className="space-y-6 px-8 pb-8">
+          {/* Success Alert with enhanced styling */}
           {authSuccess && (
-            <Alert className="border-green-200 bg-green-50 text-green-800">
-              <CheckCircle className="h-4 w-4" />
-              <AlertDescription>{authSuccess}</AlertDescription>
+            <Alert className="border-green-500/30 bg-gradient-to-r from-green-500/10 to-emerald-500/10 text-green-300 animate-scale-in">
+              <CheckCircle className="h-5 w-5 text-green-400" />
+              <AlertDescription className="font-medium">{authSuccess}</AlertDescription>
             </Alert>
           )}
 
-          {/* Error Alert */}
+          {/* Error Alert with enhanced styling */}
           {authError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{authError}</AlertDescription>
+            <Alert variant="destructive" className="border-red-500/30 bg-gradient-to-r from-red-500/10 to-pink-500/10 animate-scale-in">
+              <AlertCircle className="h-5 w-5" />
+              <AlertDescription className="font-medium">{authError}</AlertDescription>
             </Alert>
           )}
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {/* Name field for sign up */}
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+              {/* Name field for sign up with icon */}
               {!isSignIn && (
                 <FormField
                   control={form.control}
                   name="name"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name</FormLabel>
+                    <FormItem className="animate-slide-in-right delay-100">
+                      <FormLabel className="text-foreground font-medium">Full Name</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="Enter your full name" 
-                          {...field}
-                          disabled={isSubmitting}
-                        />
+                        <div className="relative group">
+                          <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 transition-colors group-focus-within:text-primary" />
+                          <Input 
+                            placeholder="Enter your full name" 
+                            {...field}
+                            disabled={isSubmitting}
+                            className="pl-10 h-12 bg-background/50 border-border/50 focus:border-primary/50 transition-all duration-300 hover:border-primary/30"
+                          />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -238,55 +248,61 @@ export default function AuthForm() {
                 />
               )}
 
-              {/* Email field */}
+              {/* Email field with icon */}
               <FormField
                 control={form.control}
                 name="email"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email Address</FormLabel>
+                  <FormItem className="animate-slide-in-right delay-200">
+                    <FormLabel className="text-foreground font-medium">Email Address</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="email"
-                        placeholder="Enter your email" 
-                        {...field}
-                        disabled={isSubmitting}
-                        autoComplete="email"
-                      />
+                      <div className="relative group">
+                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 transition-colors group-focus-within:text-primary" />
+                        <Input 
+                          type="email"
+                          placeholder="Enter your email" 
+                          {...field}
+                          disabled={isSubmitting}
+                          autoComplete="email"
+                          className="pl-10 h-12 bg-background/50 border-border/50 focus:border-primary/50 transition-all duration-300 hover:border-primary/30"
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              {/* Password field */}
+              {/* Password field with enhanced styling */}
               <FormField
                 control={form.control}
                 name="password"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
+                  <FormItem className="animate-slide-in-right delay-300">
+                    <FormLabel className="text-foreground font-medium">Password</FormLabel>
                     <FormControl>
-                      <div className="relative">
+                      <div className="relative group">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 transition-colors group-focus-within:text-primary" />
                         <Input 
                           type={showPassword ? "text" : "password"}
                           placeholder="Enter your password" 
                           {...field}
                           disabled={isSubmitting}
                           autoComplete={isSignIn ? "current-password" : "new-password"}
+                          className="pl-10 pr-12 h-12 bg-background/50 border-border/50 focus:border-primary/50 transition-all duration-300 hover:border-primary/30"
                         />
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          className="absolute right-1 top-1/2 transform -translate-y-1/2 h-10 w-10 hover:bg-primary/10 transition-all duration-200"
                           onClick={() => setShowPassword(!showPassword)}
                           disabled={isSubmitting}
                         >
                           {showPassword ? (
-                            <EyeOff className="h-4 w-4" />
+                            <EyeOff className="h-4 w-4 text-muted-foreground" />
                           ) : (
-                            <Eye className="h-4 w-4" />
+                            <Eye className="h-4 w-4 text-muted-foreground" />
                           )}
                         </Button>
                       </div>
@@ -296,21 +312,21 @@ export default function AuthForm() {
                 )}
               />
 
-              {/* Gender field for sign up */}
+              {/* Gender field for sign up with enhanced styling */}
               {!isSignIn && (
                 <FormField
                   control={form.control}
                   name="gender"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Gender</FormLabel>
+                    <FormItem className="animate-slide-in-right delay-400">
+                      <FormLabel className="text-foreground font-medium">Gender</FormLabel>
                       <Select 
                         onValueChange={field.onChange} 
                         defaultValue={field.value}
                         disabled={isSubmitting}
                       >
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="h-12 bg-background/50 border-border/50 focus:border-primary/50 transition-all duration-300 hover:border-primary/30">
                             <SelectValue placeholder="Select your gender" />
                           </SelectTrigger>
                         </FormControl>
@@ -327,37 +343,36 @@ export default function AuthForm() {
                 />
               )}
 
-              {/* Submit button */}
+              {/* Enhanced submit button */}
               <Button 
                 type="submit" 
-                className="w-full" 
+                className="w-full h-12 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-primary-foreground font-semibold text-base transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/25 animate-slide-in-right delay-500" 
                 disabled={isSubmitting}
-                size="lg"
               >
-                {isSubmitting && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting && <LoaderCircle className="mr-3 h-5 w-5 animate-spin" />}
                 {isSignIn ? "Sign In" : "Create Account"}
               </Button>
             </form>
           </Form>
 
-          {/* Toggle between sign in/up */}
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">
-              {isSignIn ? "Don't have an account?" : "Already have an account?"}{" "}
-              <Button 
-                variant="link" 
-                onClick={toggleFormType} 
-                className="p-0 h-auto font-semibold text-primary hover:underline"
-                disabled={isSubmitting}
-              >
-                {isSignIn ? "Sign up" : "Sign in"}
-              </Button>
+          {/* Enhanced toggle section */}
+          <div className="text-center pt-4 animate-slide-in-right delay-600">
+            <p className="text-sm text-muted-foreground mb-3">
+              {isSignIn ? "Don't have an account?" : "Already have an account?"}
             </p>
+            <Button 
+              variant="outline" 
+              onClick={toggleFormType} 
+              className="w-full h-11 border-border/50 bg-background/30 hover:bg-primary/5 hover:border-primary/50 text-foreground font-medium transition-all duration-300 transform hover:scale-[1.02]"
+              disabled={isSubmitting}
+            >
+              {isSignIn ? "Create Account" : "Sign In"}
+            </Button>
           </div>
         </CardContent>
       </Card>
 
-      <div className="mt-8">
+      <div className="mt-8 animate-slide-in-right delay-700">
         <DeveloperCredit />
       </div>
     </div>
