@@ -8,12 +8,45 @@ const model = genAI.getGenerativeModel({
   model: "gemini-1.5-flash-latest",
 });
 
-const generationConfig = {
-  temperature: 1,
-  topP: 0.95,
-  topK: 64,
-  maxOutputTokens: 8192,
-  responseMimeType: "text/plain",
+const getGenerationConfig = (responseLength: string = 'adaptive', codeDetailLevel: string = 'comprehensive') => {
+  let maxTokens = 8192;
+  let temperature = 1;
+  
+  switch (responseLength) {
+    case 'brief':
+      maxTokens = 2048;
+      break;
+    case 'detailed':
+      maxTokens = 16384;
+      break;
+    case 'adaptive':
+    default:
+      maxTokens = 8192;
+      break;
+  }
+
+  switch (codeDetailLevel) {
+    case 'minimal':
+      temperature = 0.7;
+      break;
+    case 'enterprise':
+      maxTokens = Math.max(maxTokens, 16384);
+      temperature = 0.8;
+      break;
+    case 'comprehensive':
+    default:
+      maxTokens = Math.max(maxTokens, 12288);
+      temperature = 1;
+      break;
+  }
+
+  return {
+    temperature,
+    topP: 0.95,
+    topK: 64,
+    maxOutputTokens: maxTokens,
+    responseMimeType: "text/plain",
+  };
 };
 
 const safetySettings = [
@@ -50,8 +83,51 @@ const fileToGenerativePart = async (file: File) => {
     };
 };
 
-export const runChat = async (prompt: string, history: { role: string, parts: { text: string }[] }[], file?: File) => {
+export const runChat = async (
+  prompt: string, 
+  history: { role: string, parts: { text: string }[] }[], 
+  file?: File,
+  userSettings?: { responseLength?: string; codeDetailLevel?: string; aiCreativity?: number }
+) => {
   try {
+    const settings = userSettings || {};
+    const generationConfig = getGenerationConfig(settings.responseLength, settings.codeDetailLevel);
+    
+    // Adjust temperature based on user creativity setting
+    if (settings.aiCreativity !== undefined) {
+      generationConfig.temperature = settings.aiCreativity;
+    }
+
+    // Enhance prompts based on settings
+    let enhancedPrompt = prompt;
+    
+    if (settings.codeDetailLevel === 'comprehensive' || settings.codeDetailLevel === 'enterprise') {
+      if (prompt.includes('code') || prompt.includes('build') || prompt.includes('create')) {
+        enhancedPrompt = `${prompt}
+
+IMPORTANT INSTRUCTIONS FOR CODE GENERATION:
+- Generate production-ready, fully functional code
+- Include comprehensive error handling and edge cases
+- Add detailed comments and documentation
+- Implement proper TypeScript types and interfaces
+- Include unit tests where appropriate
+- Follow best practices and design patterns
+- Make the code scalable and maintainable
+- Include proper styling with Tailwind CSS
+- Ensure responsive design principles
+- Add accessibility features (ARIA labels, keyboard navigation)
+${settings.codeDetailLevel === 'enterprise' ? '- Include security considerations and performance optimizations\n- Add logging and monitoring capabilities\n- Implement proper state management patterns' : ''}
+
+Generate complete, working solutions rather than placeholder code.`;
+      }
+    }
+
+    if (settings.responseLength === 'detailed') {
+      enhancedPrompt = `${enhancedPrompt}
+
+Please provide a comprehensive and detailed response with thorough explanations, examples, and step-by-step guidance where applicable.`;
+    }
+
     // The Gemini API requires the history to start with a user message.
     // If the history starts with a model message (like our initial greeting), we skip it.
     const validHistory = (history.length > 0 && history[0].role === 'model')
@@ -66,11 +142,11 @@ export const runChat = async (prompt: string, history: { role: string, parts: { 
     
     if (file && file.type.startsWith("image/")) {
         const imagePart = await fileToGenerativePart(file);
-        const promptForImage = prompt || "What's in this image?";
+        const promptForImage = enhancedPrompt || "What's in this image?";
         const result = await chatSession.sendMessage([promptForImage, imagePart]);
         return result.response.text();
     } else {
-        const result = await chatSession.sendMessage(prompt);
+        const result = await chatSession.sendMessage(enhancedPrompt);
         return result.response.text();
     }
   } catch (error) {

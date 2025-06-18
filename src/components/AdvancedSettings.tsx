@@ -8,19 +8,22 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from '@/components/ui/sonner';
 import { 
   Brain, 
-  Palette, 
+  Activity, 
   Zap, 
   Shield, 
   Download, 
   Trash2, 
   RefreshCw,
-  Moon,
-  Sun,
   Volume2,
   Bell,
   Eye,
-  MessageSquare
+  MessageSquare,
+  BarChart3,
+  Database,
+  Clock,
+  HardDrive
 } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 
 interface AdvancedSettingsProps {
   userProfile: any;
@@ -31,14 +34,27 @@ const AdvancedSettings = ({ userProfile, onUpdateProfile }: AdvancedSettingsProp
   const [settings, setSettings] = useState({
     aiCreativity: userProfile?.ai_creativity || 0.7,
     autoSave: userProfile?.auto_save ?? true,
-    darkMode: userProfile?.dark_mode ?? true,
     soundEffects: userProfile?.sound_effects ?? false,
     notifications: userProfile?.notifications ?? true,
     streamResponse: userProfile?.stream_response ?? true,
     language: userProfile?.language || 'en',
     responseStyle: userProfile?.response_style || 'balanced',
     privacy: userProfile?.privacy_level || 'standard',
+    codeDetailLevel: userProfile?.code_detail_level || 'comprehensive',
+    responseLength: userProfile?.response_length || 'adaptive',
   });
+
+  // Mock data for demonstration
+  const activityData = {
+    totalMessages: 247,
+    codeGenerated: 15,
+    imagesCreated: 8,
+    filesUploaded: 12,
+    storageUsed: 2.3, // GB
+    storageLimit: 10, // GB
+    lastActivity: new Date().toLocaleDateString(),
+    accountAge: '15 days'
+  };
 
   const handleSettingChange = (key: string, value: any) => {
     const newSettings = { ...settings, [key]: value };
@@ -58,13 +74,14 @@ const AdvancedSettings = ({ userProfile, onUpdateProfile }: AdvancedSettingsProp
     const defaultSettings = {
       aiCreativity: 0.7,
       autoSave: true,
-      darkMode: true,
       soundEffects: false,
       notifications: true,
       streamResponse: true,
       language: 'en',
       responseStyle: 'balanced',
       privacy: 'standard',
+      codeDetailLevel: 'comprehensive',
+      responseLength: 'adaptive',
     };
     setSettings(defaultSettings);
     onUpdateProfile(defaultSettings);
@@ -73,6 +90,63 @@ const AdvancedSettings = ({ userProfile, onUpdateProfile }: AdvancedSettingsProp
 
   return (
     <div className="space-y-6 p-6 max-h-[80vh] overflow-y-auto">
+      {/* Activity & Stats Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Activity className="h-5 w-5 text-primary" />
+          <h3 className="text-lg font-semibold">Activity & Statistics</h3>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-card/50 p-4 rounded-lg border border-border/50">
+            <div className="flex items-center gap-2 mb-2">
+              <MessageSquare className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">Total Messages</span>
+            </div>
+            <p className="text-2xl font-bold text-primary">{activityData.totalMessages}</p>
+          </div>
+          
+          <div className="bg-card/50 p-4 rounded-lg border border-border/50">
+            <div className="flex items-center gap-2 mb-2">
+              <BarChart3 className="h-4 w-4 text-green-500" />
+              <span className="text-sm font-medium">Code Generated</span>
+            </div>
+            <p className="text-2xl font-bold text-green-500">{activityData.codeGenerated}</p>
+          </div>
+          
+          <div className="bg-card/50 p-4 rounded-lg border border-border/50">
+            <div className="flex items-center gap-2 mb-2">
+              <Database className="h-4 w-4 text-blue-500" />
+              <span className="text-sm font-medium">Files Uploaded</span>
+            </div>
+            <p className="text-2xl font-bold text-blue-500">{activityData.filesUploaded}</p>
+          </div>
+          
+          <div className="bg-card/50 p-4 rounded-lg border border-border/50">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="h-4 w-4 text-orange-500" />
+              <span className="text-sm font-medium">Account Age</span>
+            </div>
+            <p className="text-2xl font-bold text-orange-500">{activityData.accountAge}</p>
+          </div>
+        </div>
+
+        <div className="bg-card/50 p-4 rounded-lg border border-border/50">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <HardDrive className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">Storage Usage</span>
+            </div>
+            <span className="text-sm text-muted-foreground">
+              {activityData.storageUsed}GB / {activityData.storageLimit}GB
+            </span>
+          </div>
+          <Progress value={(activityData.storageUsed / activityData.storageLimit) * 100} className="h-2" />
+        </div>
+      </div>
+
+      <Separator />
+
       {/* AI Behavior Section */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
@@ -114,6 +188,38 @@ const AdvancedSettings = ({ userProfile, onUpdateProfile }: AdvancedSettingsProp
             </Select>
           </div>
 
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Code Detail Level</label>
+            <Select value={settings.codeDetailLevel} onValueChange={(value) => handleSettingChange('codeDetailLevel', value)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="minimal">Minimal</SelectItem>
+                <SelectItem value="standard">Standard</SelectItem>
+                <SelectItem value="comprehensive">Comprehensive</SelectItem>
+                <SelectItem value="enterprise">Enterprise Grade</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Controls how detailed and functional the generated code will be
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Response Length</label>
+            <Select value={settings.responseLength} onValueChange={(value) => handleSettingChange('responseLength', value)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="brief">Brief</SelectItem>
+                <SelectItem value="adaptive">Adaptive</SelectItem>
+                <SelectItem value="detailed">Always Detailed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <label className="text-sm font-medium">Stream Responses</label>
@@ -132,25 +238,11 @@ const AdvancedSettings = ({ userProfile, onUpdateProfile }: AdvancedSettingsProp
       {/* Interface Section */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <Palette className="h-5 w-5 text-primary" />
+          <Eye className="h-5 w-5 text-primary" />
           <h3 className="text-lg font-semibold">Interface</h3>
         </div>
         
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <label className="text-sm font-medium flex items-center gap-2">
-                {settings.darkMode ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-                Dark Mode
-              </label>
-              <p className="text-xs text-muted-foreground">Toggle between light and dark themes</p>
-            </div>
-            <Switch
-              checked={settings.darkMode}
-              onCheckedChange={(checked) => handleSettingChange('darkMode', checked)}
-            />
-          </div>
-
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <label className="text-sm font-medium flex items-center gap-2">
