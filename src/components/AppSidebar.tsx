@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   Sidebar,
@@ -67,10 +68,7 @@ export default function AppSidebar({
   const { collapsed } = useSidebar();
 
   return (
-    <Sidebar 
-      variant="inset" 
-      className="border-r border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
-    >
+    <Sidebar className="border-r border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <SidebarHeader className="border-b border-border/40">
         <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center text-primary shrink-0">
@@ -146,6 +144,12 @@ export default function AppSidebar({
             <SidebarMenu>
               <SidebarMenuItem>
                  <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+                    <DialogTrigger asChild>
+                      <SidebarMenuButton className="w-full">
+                        <Settings size={18} />
+                        {!collapsed && <span>Advanced Settings</span>}
+                      </SidebarMenuButton>
+                    </DialogTrigger>
                     <DialogContent className="max-w-2xl max-h-[90vh]">
                       <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
