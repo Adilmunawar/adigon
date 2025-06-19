@@ -618,13 +618,13 @@ Create a masterpiece-quality SVG that exceeds expectations:`;
           parts: msg.parts,
         }));
         
-        // Pass user settings to the API with proper type checking
+        // Pass user settings to the API with proper type assertions
         const userSettings = {
-          responseLength: (userProfile && typeof userProfile === 'object' && 'response_length' in userProfile) 
+          responseLength: (userProfile && typeof userProfile === 'object' && 'response_length' in userProfile && typeof userProfile.response_length === 'string') 
             ? userProfile.response_length : 'adaptive',
-          codeDetailLevel: (userProfile && typeof userProfile === 'object' && 'code_detail_level' in userProfile) 
+          codeDetailLevel: (userProfile && typeof userProfile === 'object' && 'code_detail_level' in userProfile && typeof userProfile.code_detail_level === 'string') 
             ? userProfile.code_detail_level : 'comprehensive',
-          aiCreativity: (userProfile && typeof userProfile === 'object' && 'ai_creativity' in userProfile) 
+          aiCreativity: (userProfile && typeof userProfile === 'object' && 'ai_creativity' in userProfile && typeof userProfile.ai_creativity === 'number') 
             ? userProfile.ai_creativity : 0.7,
         };
         
