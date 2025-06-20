@@ -13,6 +13,6 @@ Integration: Easily integrates with other platforms and services for extended fu
 The working diagram above (diagram 3) visually represents the flow of data and processes within the application, illustrating how information moves from input, through AI processing, and out to the user or other systems.
 
 **Credits**
-Proudly developed by Adil Munawar
+Proudly developed by **Adil Munawar**
 Instagram: @adilmunawarx
 Email: adilmunawarx@gmail.com
