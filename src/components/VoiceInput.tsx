@@ -1,99 +1,85 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Square } from 'lucide-react';
+import { Mic, MicOff } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
-import { cn } from '@/lib/utils';
 
 interface VoiceInputProps {
   onTranscription: (text: string) => void;
   disabled?: boolean;
 }
 
-const VoiceInput = ({ onTranscription, disabled }: VoiceInputProps) => {
+const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, disabled = false }) => {
   const [isRecording, setIsRecording] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
 
-  const startRecording = async () => {
+  const handleVoiceInput = async () => {
+    if (disabled) return;
+
+    if (isRecording) {
+      // Stop recording
+      setIsRecording(false);
+      toast.info('Voice recording stopped');
+      return;
+    }
+
+    // Check if browser supports speech recognition
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      toast.error('Speech recognition is not supported in this browser');
+      return;
+    }
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
+      setIsRecording(true);
+      
+      // Create speech recognition instance
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
+      recognition.onstart = () => {
+        toast.info('Listening... Speak now');
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        onTranscription(transcript);
+        toast.success('Voice input captured successfully');
+        setIsRecording(false);
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        setIsRecording(false);
+        
+        switch (event.error) {
+          case 'no-speech':
+            toast.error('No speech detected. Please try again.');
+            break;
+          case 'network':
+            toast.error('Network error. Please check your connection.');
+            break;
+          case 'not-allowed':
+            toast.error('Microphone access denied. Please allow microphone access.');
+            break;
+          default:
+            toast.error('Speech recognition failed. Please try again.');
         }
       };
 
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        await processAudio(audioBlob);
-        stream.getTracks().forEach(track => track.stop());
+      recognition.onend = () => {
+        setIsRecording(false);
       };
 
-      mediaRecorder.start();
-      setIsRecording(true);
-      toast.info('Recording started. Click again to stop.');
-    } catch (error) {
-      console.error('Error starting recording:', error);
-      toast.error('Could not access microphone. Please check permissions.');
-    }
-  };
+      // Start recognition
+      recognition.start();
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
+    } catch (error) {
+      console.error('Voice input error:', error);
       setIsRecording(false);
-      setIsProcessing(true);
-    }
-  };
-
-  const processAudio = async (audioBlob: Blob) => {
-    try {
-      // Convert blob to base64
-      const base64Audio = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64 = (reader.result as string).split(',')[1];
-          resolve(base64);
-        };
-        reader.readAsDataURL(audioBlob);
-      });
-
-      // Here you would typically send to a speech-to-text service
-      // For now, we'll simulate the transcription
-      const response = await fetch('/api/transcribe-audio', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ audio: base64Audio }),
-      });
-
-      if (response.ok) {
-        const { text } = await response.json();
-        onTranscription(text);
-        toast.success('Audio transcribed successfully!');
-      } else {
-        throw new Error('Transcription failed');
-      }
-    } catch (error) {
-      console.error('Error processing audio:', error);
-      toast.error('Failed to transcribe audio. Please try again.');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleClick = () => {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      startRecording();
+      toast.error('Failed to start voice input');
     }
   };
 
@@ -101,21 +87,19 @@ const VoiceInput = ({ onTranscription, disabled }: VoiceInputProps) => {
     <Button
       type="button"
       size="icon"
-      variant={isRecording ? "destructive" : "outline"}
-      onClick={handleClick}
-      disabled={disabled || isProcessing}
-      className={cn(
-        "h-10 w-10 rounded-full transition-all duration-300",
-        isRecording && "animate-pulse bg-red-500 hover:bg-red-600",
-        isProcessing && "animate-spin"
-      )}
+      variant="ghost"
+      onClick={handleVoiceInput}
+      disabled={disabled}
+      className={`h-10 w-10 rounded-full transition-all duration-200 hover:scale-105 ${
+        isRecording 
+          ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20 animate-pulse' 
+          : 'hover:bg-primary/10 hover:text-primary'
+      }`}
     >
-      {isProcessing ? (
-        <Square size={18} />
-      ) : isRecording ? (
-        <MicOff size={18} />
+      {isRecording ? (
+        <MicOff className="w-5 h-5" />
       ) : (
-        <Mic size={18} />
+        <Mic className="w-5 h-5" />
       )}
     </Button>
   );
