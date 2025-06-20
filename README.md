@@ -3,6 +3,11 @@
   <img src="https://github.com/Adilmunawar/adigon/blob/main/public/diagram%20(3).png">
 </p>
 
+**DataBase Schema**
+<p align="center">
+  <img src="https://github.com/Adilmunawar/adigon/blob/main/public/supabase-schema-ebooztrztxcbsthnqvme.svg">
+</p>
+
 **AI Application Functioning**
 
 This AI application, adigon, is developed using TypeScript and is designed for scalable, intelligent automation. The core functionalities include:
