@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
@@ -24,25 +24,12 @@ import {
   HardDrive
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { useUserConfig } from './UserConfigManager';
+import { useAuth } from '@/providers/AuthProvider';
 
-interface AdvancedSettingsProps {
-  userProfile: any;
-  onUpdateProfile: (data: any) => void;
-}
-
-const AdvancedSettings = ({ userProfile, onUpdateProfile }: AdvancedSettingsProps) => {
-  const [settings, setSettings] = useState({
-    aiCreativity: userProfile?.ai_creativity || 0.7,
-    autoSave: userProfile?.auto_save ?? true,
-    soundEffects: userProfile?.sound_effects ?? false,
-    notifications: userProfile?.notifications ?? true,
-    streamResponse: userProfile?.stream_response ?? true,
-    language: userProfile?.language || 'en',
-    responseStyle: userProfile?.response_style || 'balanced',
-    privacy: userProfile?.privacy_level || 'standard',
-    codeDetailLevel: userProfile?.code_detail_level || 'comprehensive',
-    responseLength: userProfile?.response_length || 'adaptive',
-  });
+const AdvancedSettings = () => {
+  const { user } = useAuth();
+  const { config, loading, updateConfig } = useUserConfig(user?.id);
 
   // Mock data for demonstration
   const activityData = {
@@ -56,10 +43,8 @@ const AdvancedSettings = ({ userProfile, onUpdateProfile }: AdvancedSettingsProp
     accountAge: '15 days'
   };
 
-  const handleSettingChange = (key: string, value: any) => {
-    const newSettings = { ...settings, [key]: value };
-    setSettings(newSettings);
-    onUpdateProfile(newSettings);
+  const handleSettingChange = async (key: keyof typeof config, value: any) => {
+    await updateConfig(key, value);
   };
 
   const clearChatHistory = () => {
@@ -70,23 +55,34 @@ const AdvancedSettings = ({ userProfile, onUpdateProfile }: AdvancedSettingsProp
     toast.info("Data export functionality would be implemented here.");
   };
 
-  const resetSettings = () => {
+  const resetSettings = async () => {
     const defaultSettings = {
-      aiCreativity: 0.7,
-      autoSave: true,
-      soundEffects: false,
+      ai_creativity: 0.7,
+      auto_save: true,
+      sound_effects: false,
       notifications: true,
-      streamResponse: true,
+      stream_response: true,
       language: 'en',
-      responseStyle: 'balanced',
-      privacy: 'standard',
-      codeDetailLevel: 'comprehensive',
-      responseLength: 'adaptive',
+      response_style: 'balanced',
+      privacy_level: 'standard',
+      code_detail_level: 'comprehensive',
+      response_length: 'adaptive',
+      theme_preference: 'dark',
     };
-    setSettings(defaultSettings);
-    onUpdateProfile(defaultSettings);
+    
+    for (const [key, value] of Object.entries(defaultSettings)) {
+      await updateConfig(key as keyof typeof config, value);
+    }
     toast.success("Settings reset to defaults!");
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-muted-foreground">Loading settings...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 p-6 max-h-[80vh] overflow-y-auto bg-background text-foreground">
@@ -173,12 +169,12 @@ const AdvancedSettings = ({ userProfile, onUpdateProfile }: AdvancedSettingsProp
             <div className="flex items-center justify-between">
               <label className="text-base font-medium text-foreground">Creativity Level</label>
               <span className="text-sm text-primary font-mono bg-primary/10 px-3 py-1 rounded-full">
-                {Math.round(settings.aiCreativity * 100)}%
+                {Math.round((config.ai_creativity || 0.7) * 100)}%
               </span>
             </div>
             <Slider
-              value={[settings.aiCreativity]}
-              onValueChange={([value]) => handleSettingChange('aiCreativity', value)}
+              value={[config.ai_creativity || 0.7]}
+              onValueChange={([value]) => handleSettingChange('ai_creativity', value)}
               max={1}
               min={0}
               step={0.1}
@@ -191,7 +187,7 @@ const AdvancedSettings = ({ userProfile, onUpdateProfile }: AdvancedSettingsProp
 
           <div className="glass-card p-6 rounded-2xl space-y-4">
             <label className="text-base font-medium text-foreground">Response Style</label>
-            <Select value={settings.responseStyle} onValueChange={(value) => handleSettingChange('responseStyle', value)}>
+            <Select value={config.response_style || 'balanced'} onValueChange={(value) => handleSettingChange('response_style', value)}>
               <SelectTrigger className="bg-background/50 border-border/50">
                 <SelectValue />
               </SelectTrigger>
@@ -206,7 +202,7 @@ const AdvancedSettings = ({ userProfile, onUpdateProfile }: AdvancedSettingsProp
 
           <div className="glass-card p-6 rounded-2xl space-y-4">
             <label className="text-base font-medium text-foreground">Code Detail Level</label>
-            <Select value={settings.codeDetailLevel} onValueChange={(value) => handleSettingChange('codeDetailLevel', value)}>
+            <Select value={config.code_detail_level || 'comprehensive'} onValueChange={(value) => handleSettingChange('code_detail_level', value)}>
               <SelectTrigger className="bg-background/50 border-border/50">
                 <SelectValue />
               </SelectTrigger>
@@ -224,7 +220,7 @@ const AdvancedSettings = ({ userProfile, onUpdateProfile }: AdvancedSettingsProp
 
           <div className="glass-card p-6 rounded-2xl space-y-4">
             <label className="text-base font-medium text-foreground">Response Length</label>
-            <Select value={settings.responseLength} onValueChange={(value) => handleSettingChange('responseLength', value)}>
+            <Select value={config.response_length || 'adaptive'} onValueChange={(value) => handleSettingChange('response_length', value)}>
               <SelectTrigger className="bg-background/50 border-border/50">
                 <SelectValue />
               </SelectTrigger>
@@ -246,8 +242,8 @@ const AdvancedSettings = ({ userProfile, onUpdateProfile }: AdvancedSettingsProp
                 <p className="text-sm text-muted-foreground">Show responses as they're generated</p>
               </div>
               <Switch
-                checked={settings.streamResponse}
-                onCheckedChange={(checked) => handleSettingChange('streamResponse', checked)}
+                checked={config.stream_response ?? true}
+                onCheckedChange={(checked) => handleSettingChange('stream_response', checked)}
               />
             </div>
           </div>
@@ -276,15 +272,15 @@ const AdvancedSettings = ({ userProfile, onUpdateProfile }: AdvancedSettingsProp
                 <p className="text-sm text-muted-foreground">Play sounds for actions and notifications</p>
               </div>
               <Switch
-                checked={settings.soundEffects}
-                onCheckedChange={(checked) => handleSettingChange('soundEffects', checked)}
+                checked={config.sound_effects ?? false}
+                onCheckedChange={(checked) => handleSettingChange('sound_effects', checked)}
               />
             </div>
           </div>
 
           <div className="glass-card p-6 rounded-2xl space-y-4">
             <label className="text-base font-medium text-foreground">Language</label>
-            <Select value={settings.language} onValueChange={(value) => handleSettingChange('language', value)}>
+            <Select value={config.language || 'en'} onValueChange={(value) => handleSettingChange('language', value)}>
               <SelectTrigger className="bg-background/50 border-border/50">
                 <SelectValue />
               </SelectTrigger>
@@ -323,7 +319,7 @@ const AdvancedSettings = ({ userProfile, onUpdateProfile }: AdvancedSettingsProp
                 <p className="text-sm text-muted-foreground">Receive updates and alerts</p>
               </div>
               <Switch
-                checked={settings.notifications}
+                checked={config.notifications ?? true}
                 onCheckedChange={(checked) => handleSettingChange('notifications', checked)}
               />
             </div>
@@ -339,8 +335,8 @@ const AdvancedSettings = ({ userProfile, onUpdateProfile }: AdvancedSettingsProp
                 <p className="text-sm text-muted-foreground">Automatically save chat history</p>
               </div>
               <Switch
-                checked={settings.autoSave}
-                onCheckedChange={(checked) => handleSettingChange('autoSave', checked)}
+                checked={config.auto_save ?? true}
+                onCheckedChange={(checked) => handleSettingChange('auto_save', checked)}
               />
             </div>
           </div>
@@ -350,7 +346,7 @@ const AdvancedSettings = ({ userProfile, onUpdateProfile }: AdvancedSettingsProp
               <Eye className="h-4 w-4" />
               Privacy Level
             </label>
-            <Select value={settings.privacy} onValueChange={(value) => handleSettingChange('privacy', value)}>
+            <Select value={config.privacy_level || 'standard'} onValueChange={(value) => handleSettingChange('privacy_level', value)}>
               <SelectTrigger className="bg-background/50 border-border/50">
                 <SelectValue />
               </SelectTrigger>
