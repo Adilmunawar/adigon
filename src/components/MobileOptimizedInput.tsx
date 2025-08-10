@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, Paperclip, X, Image, Mic, MicOff, Code2, Search, Sparkles2 } from "lucide-react";
+import { Send, Paperclip, X, Image, Mic, MicOff, Code2, Search, Sparkles } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -83,7 +82,7 @@ const MobileOptimizedInput = ({
         <div className="container mx-auto px-4 py-6">
           <div className="bg-card/60 border border-border/30 rounded-3xl p-8 text-center backdrop-blur-sm shadow-xl">
             <div className="w-16 h-16 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
-              <Sparkles2 className="w-8 h-8 text-primary" />
+              <Sparkles className="w-8 h-8 text-primary" />
             </div>
             <h3 className="text-xl font-semibold text-foreground mb-2">Welcome to AdiGon AI</h3>
             <p className="text-muted-foreground">Please sign in to start your conversation</p>
