@@ -89,77 +89,93 @@ const AdvancedSettings = ({ userProfile, onUpdateProfile }: AdvancedSettingsProp
   };
 
   return (
-    <div className="space-y-6 p-6 max-h-[80vh] overflow-y-auto">
+    <div className="space-y-8 p-6 max-h-[80vh] overflow-y-auto bg-background text-foreground">
       {/* Activity & Stats Section */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Activity className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-semibold">Activity & Statistics</h3>
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Activity className="h-5 w-5 text-primary" />
+          </div>
+          <h3 className="text-xl font-bold text-foreground">Activity & Statistics</h3>
         </div>
         
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-card/50 p-4 rounded-lg border border-border/50">
-            <div className="flex items-center gap-2 mb-2">
-              <MessageSquare className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">Total Messages</span>
+          <div className="glass-card p-6 rounded-2xl">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-lg bg-blue-500/10">
+                <MessageSquare className="h-5 w-5 text-blue-400" />
+              </div>
+              <span className="text-sm font-medium text-muted-foreground">Total Messages</span>
             </div>
-            <p className="text-2xl font-bold text-primary">{activityData.totalMessages}</p>
+            <p className="text-3xl font-bold text-foreground">{activityData.totalMessages}</p>
           </div>
           
-          <div className="bg-card/50 p-4 rounded-lg border border-border/50">
-            <div className="flex items-center gap-2 mb-2">
-              <BarChart3 className="h-4 w-4 text-green-500" />
-              <span className="text-sm font-medium">Code Generated</span>
+          <div className="glass-card p-6 rounded-2xl">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-lg bg-green-500/10">
+                <BarChart3 className="h-5 w-5 text-green-400" />
+              </div>
+              <span className="text-sm font-medium text-muted-foreground">Code Generated</span>
             </div>
-            <p className="text-2xl font-bold text-green-500">{activityData.codeGenerated}</p>
+            <p className="text-3xl font-bold text-foreground">{activityData.codeGenerated}</p>
           </div>
           
-          <div className="bg-card/50 p-4 rounded-lg border border-border/50">
-            <div className="flex items-center gap-2 mb-2">
-              <Database className="h-4 w-4 text-blue-500" />
-              <span className="text-sm font-medium">Files Uploaded</span>
+          <div className="glass-card p-6 rounded-2xl">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-lg bg-purple-500/10">
+                <Database className="h-5 w-5 text-purple-400" />
+              </div>
+              <span className="text-sm font-medium text-muted-foreground">Files Uploaded</span>
             </div>
-            <p className="text-2xl font-bold text-blue-500">{activityData.filesUploaded}</p>
+            <p className="text-3xl font-bold text-foreground">{activityData.filesUploaded}</p>
           </div>
           
-          <div className="bg-card/50 p-4 rounded-lg border border-border/50">
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="h-4 w-4 text-orange-500" />
-              <span className="text-sm font-medium">Account Age</span>
+          <div className="glass-card p-6 rounded-2xl">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-lg bg-orange-500/10">
+                <Clock className="h-5 w-5 text-orange-400" />
+              </div>
+              <span className="text-sm font-medium text-muted-foreground">Account Age</span>
             </div>
-            <p className="text-2xl font-bold text-orange-500">{activityData.accountAge}</p>
+            <p className="text-3xl font-bold text-foreground">{activityData.accountAge}</p>
           </div>
         </div>
 
-        <div className="bg-card/50 p-4 rounded-lg border border-border/50">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <HardDrive className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">Storage Usage</span>
+        <div className="glass-card p-6 rounded-2xl">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <HardDrive className="h-5 w-5 text-primary" />
+              </div>
+              <span className="font-medium text-foreground">Storage Usage</span>
             </div>
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-muted-foreground font-mono">
               {activityData.storageUsed}GB / {activityData.storageLimit}GB
             </span>
           </div>
-          <Progress value={(activityData.storageUsed / activityData.storageLimit) * 100} className="h-2" />
+          <Progress value={(activityData.storageUsed / activityData.storageLimit) * 100} className="h-3" />
         </div>
       </div>
 
-      <Separator />
+      <Separator className="bg-border/50" />
 
       {/* AI Behavior Section */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Brain className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-semibold">AI Behavior</h3>
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Brain className="h-5 w-5 text-primary" />
+          </div>
+          <h3 className="text-xl font-bold text-foreground">AI Behavior</h3>
         </div>
         
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium flex items-center justify-between">
-              Creativity Level
-              <span className="text-xs text-muted-foreground">{Math.round(settings.aiCreativity * 100)}%</span>
-            </label>
+        <div className="space-y-6">
+          <div className="glass-card p-6 rounded-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="text-base font-medium text-foreground">Creativity Level</label>
+              <span className="text-sm text-primary font-mono bg-primary/10 px-3 py-1 rounded-full">
+                {Math.round(settings.aiCreativity * 100)}%
+              </span>
+            </div>
             <Slider
               value={[settings.aiCreativity]}
               onValueChange={([value]) => handleSettingChange('aiCreativity', value)}
@@ -168,18 +184,18 @@ const AdvancedSettings = ({ userProfile, onUpdateProfile }: AdvancedSettingsProp
               step={0.1}
               className="w-full"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Higher values make responses more creative and unpredictable
             </p>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Response Style</label>
+          <div className="glass-card p-6 rounded-2xl space-y-4">
+            <label className="text-base font-medium text-foreground">Response Style</label>
             <Select value={settings.responseStyle} onValueChange={(value) => handleSettingChange('responseStyle', value)}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-background/50 border-border/50">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background border-border">
                 <SelectItem value="concise">Concise</SelectItem>
                 <SelectItem value="balanced">Balanced</SelectItem>
                 <SelectItem value="detailed">Detailed</SelectItem>
@@ -188,31 +204,31 @@ const AdvancedSettings = ({ userProfile, onUpdateProfile }: AdvancedSettingsProp
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Code Detail Level</label>
+          <div className="glass-card p-6 rounded-2xl space-y-4">
+            <label className="text-base font-medium text-foreground">Code Detail Level</label>
             <Select value={settings.codeDetailLevel} onValueChange={(value) => handleSettingChange('codeDetailLevel', value)}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-background/50 border-border/50">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background border-border">
                 <SelectItem value="minimal">Minimal</SelectItem>
                 <SelectItem value="standard">Standard</SelectItem>
                 <SelectItem value="comprehensive">Comprehensive</SelectItem>
                 <SelectItem value="enterprise">Enterprise Grade</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Controls how detailed and functional the generated code will be
             </p>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Response Length</label>
+          <div className="glass-card p-6 rounded-2xl space-y-4">
+            <label className="text-base font-medium text-foreground">Response Length</label>
             <Select value={settings.responseLength} onValueChange={(value) => handleSettingChange('responseLength', value)}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-background/50 border-border/50">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background border-border">
                 <SelectItem value="brief">Brief</SelectItem>
                 <SelectItem value="adaptive">Adaptive</SelectItem>
                 <SelectItem value="detailed">Always Detailed</SelectItem>
@@ -220,50 +236,59 @@ const AdvancedSettings = ({ userProfile, onUpdateProfile }: AdvancedSettingsProp
             </Select>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <label className="text-sm font-medium">Stream Responses</label>
-              <p className="text-xs text-muted-foreground">Show responses as they're generated</p>
+          <div className="glass-card p-6 rounded-2xl">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <label className="text-base font-medium text-foreground flex items-center gap-2">
+                  <Zap className="h-4 w-4" />
+                  Stream Responses
+                </label>
+                <p className="text-sm text-muted-foreground">Show responses as they're generated</p>
+              </div>
+              <Switch
+                checked={settings.streamResponse}
+                onCheckedChange={(checked) => handleSettingChange('streamResponse', checked)}
+              />
             </div>
-            <Switch
-              checked={settings.streamResponse}
-              onCheckedChange={(checked) => handleSettingChange('streamResponse', checked)}
-            />
           </div>
         </div>
       </div>
 
-      <Separator />
+      <Separator className="bg-border/50" />
 
       {/* Interface Section */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Eye className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-semibold">Interface</h3>
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Eye className="h-5 w-5 text-primary" />
+          </div>
+          <h3 className="text-xl font-bold text-foreground">Interface</h3>
         </div>
         
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <Volume2 className="h-4 w-4" />
-                Sound Effects
-              </label>
-              <p className="text-xs text-muted-foreground">Play sounds for actions and notifications</p>
+          <div className="glass-card p-6 rounded-2xl">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <label className="text-base font-medium text-foreground flex items-center gap-2">
+                  <Volume2 className="h-4 w-4" />
+                  Sound Effects
+                </label>
+                <p className="text-sm text-muted-foreground">Play sounds for actions and notifications</p>
+              </div>
+              <Switch
+                checked={settings.soundEffects}
+                onCheckedChange={(checked) => handleSettingChange('soundEffects', checked)}
+              />
             </div>
-            <Switch
-              checked={settings.soundEffects}
-              onCheckedChange={(checked) => handleSettingChange('soundEffects', checked)}
-            />
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Language</label>
+          <div className="glass-card p-6 rounded-2xl space-y-4">
+            <label className="text-base font-medium text-foreground">Language</label>
             <Select value={settings.language} onValueChange={(value) => handleSettingChange('language', value)}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-background/50 border-border/50">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background border-border">
                 <SelectItem value="en">English</SelectItem>
                 <SelectItem value="es">Español</SelectItem>
                 <SelectItem value="fr">Français</SelectItem>
@@ -276,54 +301,60 @@ const AdvancedSettings = ({ userProfile, onUpdateProfile }: AdvancedSettingsProp
         </div>
       </div>
 
-      <Separator />
+      <Separator className="bg-border/50" />
 
       {/* Privacy & Security Section */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Shield className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-semibold">Privacy & Security</h3>
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Shield className="h-5 w-5 text-primary" />
+          </div>
+          <h3 className="text-xl font-bold text-foreground">Privacy & Security</h3>
         </div>
         
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <Bell className="h-4 w-4" />
-                Notifications
-              </label>
-              <p className="text-xs text-muted-foreground">Receive updates and alerts</p>
+          <div className="glass-card p-6 rounded-2xl">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <label className="text-base font-medium text-foreground flex items-center gap-2">
+                  <Bell className="h-4 w-4" />
+                  Notifications
+                </label>
+                <p className="text-sm text-muted-foreground">Receive updates and alerts</p>
+              </div>
+              <Switch
+                checked={settings.notifications}
+                onCheckedChange={(checked) => handleSettingChange('notifications', checked)}
+              />
             </div>
-            <Switch
-              checked={settings.notifications}
-              onCheckedChange={(checked) => handleSettingChange('notifications', checked)}
-            />
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <Zap className="h-4 w-4" />
-                Auto-Save Conversations
-              </label>
-              <p className="text-xs text-muted-foreground">Automatically save chat history</p>
+          <div className="glass-card p-6 rounded-2xl">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <label className="text-base font-medium text-foreground flex items-center gap-2">
+                  <Database className="h-4 w-4" />
+                  Auto-Save Conversations
+                </label>
+                <p className="text-sm text-muted-foreground">Automatically save chat history</p>
+              </div>
+              <Switch
+                checked={settings.autoSave}
+                onCheckedChange={(checked) => handleSettingChange('autoSave', checked)}
+              />
             </div>
-            <Switch
-              checked={settings.autoSave}
-              onCheckedChange={(checked) => handleSettingChange('autoSave', checked)}
-            />
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium flex items-center gap-2">
+          <div className="glass-card p-6 rounded-2xl space-y-4">
+            <label className="text-base font-medium text-foreground flex items-center gap-2">
               <Eye className="h-4 w-4" />
               Privacy Level
             </label>
             <Select value={settings.privacy} onValueChange={(value) => handleSettingChange('privacy', value)}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-background/50 border-border/50">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background border-border">
                 <SelectItem value="minimal">Minimal</SelectItem>
                 <SelectItem value="standard">Standard</SelectItem>
                 <SelectItem value="enhanced">Enhanced</SelectItem>
@@ -333,40 +364,42 @@ const AdvancedSettings = ({ userProfile, onUpdateProfile }: AdvancedSettingsProp
         </div>
       </div>
 
-      <Separator />
+      <Separator className="bg-border/50" />
 
       {/* Data Management Section */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-semibold">Data Management</h3>
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <MessageSquare className="h-5 w-5 text-primary" />
+          </div>
+          <h3 className="text-xl font-bold text-foreground">Data Management</h3>
         </div>
         
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 gap-4">
           <Button 
             variant="outline" 
             onClick={exportData}
-            className="justify-start"
+            className="justify-start glass-card hover:bg-primary/10 border-border/50"
           >
-            <Download className="h-4 w-4 mr-2" />
+            <Download className="h-4 w-4 mr-3" />
             Export Chat History
           </Button>
           
           <Button 
             variant="outline" 
             onClick={clearChatHistory}
-            className="justify-start text-orange-600 hover:text-orange-700"
+            className="justify-start glass-card hover:bg-orange-500/10 border-border/50 text-orange-400 hover:text-orange-300"
           >
-            <Trash2 className="h-4 w-4 mr-2" />
+            <Trash2 className="h-4 w-4 mr-3" />
             Clear All Conversations
           </Button>
           
           <Button 
             variant="outline" 
             onClick={resetSettings}
-            className="justify-start"
+            className="justify-start glass-card hover:bg-blue-500/10 border-border/50 text-blue-400 hover:text-blue-300"
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
+            <RefreshCw className="h-4 w-4 mr-3" />
             Reset All Settings
           </Button>
         </div>

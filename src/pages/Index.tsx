@@ -45,7 +45,7 @@ const loadingMessagesSets = {
   search: [
     "Deep searching the web...",
     "Synthesizing information...",
-    "Citing sources...",
+  "Citing sources...",
   ],
   file: [
     "Analyzing file...",
@@ -165,15 +165,6 @@ const Index = () => {
     };
   }, [isLoading, currentLoadingSet]);
 
-  useEffect(() => {
-    if (conversations && conversations.length > 0 && !activeConversationId) {
-      handleSelectConversation(conversations[0].id);
-    } else if (conversations?.length === 0) {
-      setMessages([]);
-      setActiveConversationId(null);
-    }
-  }, [conversations, user]);
-
   const handleNewChat = async () => {
     setMessages([]);
     setActiveConversationId(null);
@@ -183,6 +174,15 @@ const Index = () => {
     setCurrentGeneratedCode("");
     setCurrentProjectTitle("");
   };
+
+  useEffect(() => {
+    if (conversations && conversations.length > 0 && !activeConversationId) {
+      handleSelectConversation(conversations[0].id);
+    } else if (conversations?.length === 0) {
+      setMessages([]);
+      setActiveConversationId(null);
+    }
+  }, [conversations, user]);
 
   const handleSelectConversation = async (conversationId: string) => {
     if (isLoading) return;
@@ -474,7 +474,7 @@ Build a complete, functional application:`;
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-full overflow-hidden">
+      <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
         <AppSidebar
           isSettingsOpen={false}
           setIsSettingsOpen={() => {}}
@@ -503,10 +503,10 @@ Build a complete, functional application:`;
           }}
         />
         
-        <div className="flex flex-col flex-1 min-w-0">
+        <div className="flex flex-col flex-1 min-w-0 bg-background">
           <UserHeader user={user} signOut={signOut} />
           
-          <main className="flex-1 overflow-y-auto relative">
+          <main className="flex-1 overflow-y-auto relative bg-background">
             <div className={`mx-auto space-y-2 p-4 sm:p-6 ${isMobile ? 'max-w-full' : 'max-w-4xl'}`}>
               {messages.map((msg, index) => (
                 <StreamingChatMessage
@@ -525,7 +525,7 @@ Build a complete, functional application:`;
                   <div className="flex-shrink-0 w-10 h-10 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20 shadow-lg backdrop-blur-xl">
                     <Bot size={18} className="text-primary" />
                   </div>
-                  <div className="card-modern px-6 py-4 shadow-lg flex items-center gap-3">
+                  <div className="glass-card px-6 py-4 shadow-lg flex items-center gap-3">
                     <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
                     <p className="text-foreground font-medium">{loadingMessage}</p>
                   </div>
@@ -552,7 +552,7 @@ Build a complete, functional application:`;
                         <button 
                           key={prompt.text}
                           onClick={() => handleSendMessage(prompt.text)}
-                          className="group card-modern p-6 hover-lift text-left transition-all duration-300"
+                          className="group glass-card p-6 hover-lift text-left transition-all duration-300"
                         >
                           <div className="bg-gradient-to-br from-primary/20 to-primary/10 p-3 rounded-xl text-primary mb-4 w-fit group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-primary/20">
                             <Icon size={24} />

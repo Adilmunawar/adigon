@@ -66,7 +66,7 @@ const InputArea = ({
     return (
       <div className="border-t border-border/20 bg-gradient-to-t from-background/95 to-background/80 backdrop-blur-xl p-6">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-card/50 border border-border/50 rounded-2xl p-8 text-center backdrop-blur-sm shadow-lg">
+          <div className="glass-card p-8 text-center backdrop-blur-sm shadow-lg">
             <div className="w-16 h-16 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
               <Settings className="w-8 h-8 text-primary" />
             </div>
@@ -80,75 +80,80 @@ const InputArea = ({
 
   return (
     <div className="border-t border-border/10 bg-gradient-to-t from-background via-background/95 to-background/80 backdrop-blur-xl p-4 sm:p-6">
-      <div className="max-w-4xl mx-auto space-y-4">
-        {/* AI Mode Toggles */}
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* AI Mode Toggles - Enhanced Design */}
         <div className="flex items-center justify-center gap-8 text-sm">
-          <div className="flex items-center gap-3 group">
+          <div className="flex items-center gap-4 group">
             <div className="relative">
               <Switch
                 checked={isCoderMode}
                 onCheckedChange={setIsCoderMode}
                 id="coder-mode"
-                className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-blue-500 data-[state=checked]:to-blue-600"
+                className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-blue-500 data-[state=checked]:to-blue-600 modern-switch"
               />
               {isCoderMode && (
                 <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 to-blue-600/20 rounded-full blur animate-pulse" />
               )}
             </div>
-            <label htmlFor="coder-mode" className="font-medium text-foreground group-hover:text-blue-500 transition-colors cursor-pointer flex items-center gap-2">
-              <Sparkles className="w-4 h-4" />
-              Developer Mode
+            <label htmlFor="coder-mode" className="font-medium text-foreground group-hover:text-blue-400 transition-colors cursor-pointer flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-blue-500/10">
+                <Sparkles className="w-4 h-4 text-blue-400" />
+              </div>
+              <span className="text-base">Developer Mode</span>
             </label>
           </div>
-          <div className="flex items-center gap-3 group">
+          
+          <div className="flex items-center gap-4 group">
             <div className="relative">
               <Switch
                 checked={isDeepSearchMode}
                 onCheckedChange={setIsDeepSearchMode}
                 id="search-mode"
-                className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-emerald-500 data-[state=checked]:to-emerald-600"
+                className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-emerald-500 data-[state=checked]:to-emerald-600 modern-switch"
               />
               {isDeepSearchMode && (
                 <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-full blur animate-pulse" />
               )}
             </div>
-            <label htmlFor="search-mode" className="font-medium text-foreground group-hover:text-emerald-500 transition-colors cursor-pointer flex items-center gap-2">
-              <Settings className="w-4 h-4" />
-              Deep Search
+            <label htmlFor="search-mode" className="font-medium text-foreground group-hover:text-emerald-400 transition-colors cursor-pointer flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-emerald-500/10">
+                <Settings className="w-4 h-4 text-emerald-400" />
+              </div>
+              <span className="text-base">Deep Search</span>
             </label>
           </div>
         </div>
 
-        {/* Attached File Display */}
+        {/* Attached File Display - Enhanced */}
         {attachedFile && (
-          <div className="bg-gradient-to-r from-muted/30 to-muted/20 border border-border/30 rounded-2xl p-4 backdrop-blur-sm shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                <Paperclip className="w-5 h-5 text-primary" />
+          <div className="glass-card p-6 shadow-lg animate-scale-in">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center">
+                <Paperclip className="w-6 h-6 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{attachedFile.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {(attachedFile.size / 1024 / 1024).toFixed(2)} MB
+                <p className="text-base font-medium text-foreground truncate">{attachedFile.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {(attachedFile.size / 1024 / 1024).toFixed(2)} MB • {attachedFile.type}
                 </p>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setAttachedFile(null)}
-                className="h-8 w-8 rounded-full hover:bg-destructive/10 hover:text-destructive transition-colors"
+                className="h-10 w-10 rounded-full hover:bg-destructive/10 hover:text-destructive transition-all duration-200"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </Button>
             </div>
           </div>
         )}
 
-        {/* Main Input Form */}
+        {/* Main Input Form - Gemini-inspired Design */}
         <form onSubmit={onFormSubmit} className="relative">
-          <div className="bg-card/60 border border-border/20 rounded-3xl shadow-xl backdrop-blur-xl overflow-hidden group hover:shadow-2xl transition-all duration-300 hover:border-primary/20">
-            <div className="flex items-end gap-2 p-4">
-              {/* Text Input */}
+          <div className="glass-card overflow-hidden group hover:shadow-2xl transition-all duration-300 hover:border-primary/30">
+            <div className="flex items-end gap-3 p-6">
+              {/* Text Input - Enhanced */}
               <div className="flex-1 relative">
                 <Input
                   value={input}
@@ -156,18 +161,18 @@ const InputArea = ({
                   onPaste={handlePaste}
                   placeholder="Message AdiGon AI... (Ctrl+V to paste images)"
                   disabled={isLoading}
-                  className="border-0 bg-transparent text-lg placeholder:text-muted-foreground/70 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none min-h-[48px] pr-4"
+                  className="gemini-input text-lg min-h-[56px] px-6 py-4 resize-none border-none bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
               </div>
               
-              {/* Action Buttons */}
-              <div className="flex items-center gap-1">
+              {/* Action Buttons - Enhanced */}
+              <div className="flex items-center gap-2">
                 <Button
                   type="button"
                   size="icon"
                   variant="ghost"
                   onClick={handleAttachFileClick}
-                  className="h-10 w-10 rounded-full hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-105"
+                  className="h-12 w-12 rounded-2xl hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-105"
                   disabled={isLoading}
                 >
                   <Paperclip className="w-5 h-5" />
@@ -183,7 +188,7 @@ const InputArea = ({
                   size="icon"
                   variant="ghost"
                   onClick={handleImageGeneration}
-                  className="h-10 w-10 rounded-full hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-105"
+                  className="h-12 w-12 rounded-2xl hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-105"
                   disabled={isLoading}
                 >
                   <Image className="w-5 h-5" />
@@ -193,7 +198,7 @@ const InputArea = ({
                   type="submit"
                   size="icon"
                   disabled={(!input.trim() && !attachedFile) || isLoading}
-                  className="h-10 w-10 rounded-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground hover:from-primary/90 hover:to-primary/70 transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ml-2"
+                  className="h-12 w-12 rounded-2xl action-button disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ml-2"
                 >
                   {isLoading ? (
                     <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
