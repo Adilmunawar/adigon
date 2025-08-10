@@ -17,14 +17,15 @@ import * as pdfjsLib from 'pdfjs-dist';
 import JSZip from 'jszip';
 import DeveloperCredit from "@/components/DeveloperCredit";
 import UserHeader from "@/components/UserHeader";
-import ChatInterface from "@/components/ChatInterface";
-import InputArea from "@/components/InputArea";
+import EnhancedChatInterface from "@/components/EnhancedChatInterface";
+import MobileOptimizedInput from "@/components/MobileOptimizedInput";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const examplePrompts = [
   { text: "generate image: a futuristic city at night", icon: Image },
   { text: "What is the capital of France?", icon: Globe },
   { text: "Write a short poem about space", icon: Sparkles },
-  { text: "Explain quantum computing in simple terms", icon: BrainCircuit },
+  { text: "Build a complete Netflix clone with authentication", icon: BrainCircuit },
 ];
 
 const loadingMessagesSets = {
@@ -69,6 +70,7 @@ const extractTextFromPdf = async (file: File): Promise<string> => {
 };
 
 const Index = () => {
+  const isMobile = useIsMobile();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -372,6 +374,10 @@ const Index = () => {
       toast.info("Please enter a prompt to generate an image.");
     }
   };
+
+  const handleVoiceTranscription = (text: string) => {
+    setInput(prev => prev + (prev ? ' ' : '') + text);
+  };
   
   const handleSendMessage = async (promptOverride?: string) => {
     const userInput = promptOverride || input;
@@ -621,11 +627,11 @@ Create a masterpiece-quality SVG that exceeds expectations:`;
         // Pass user settings to the API with proper type assertions
         const userSettings = {
           responseLength: (userProfile && typeof userProfile === 'object' && 'response_length' in userProfile && typeof userProfile.response_length === 'string') 
-            ? userProfile.response_length : 'adaptive',
+            ? userProfile.response_length as string : 'adaptive',
           codeDetailLevel: (userProfile && typeof userProfile === 'object' && 'code_detail_level' in userProfile && typeof userProfile.code_detail_level === 'string') 
-            ? userProfile.code_detail_level : 'comprehensive',
+            ? userProfile.code_detail_level as string : 'comprehensive',
           aiCreativity: (userProfile && typeof userProfile === 'object' && 'ai_creativity' in userProfile && typeof userProfile.ai_creativity === 'number') 
-            ? userProfile.ai_creativity : 0.7,
+            ? userProfile.ai_creativity as number : 0.7,
         };
         
         const response = await runChat(finalApiPrompt, history, fileForApi, userSettings);
@@ -741,7 +747,7 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
         <div className="flex flex-col flex-1 min-w-0">
           <UserHeader user={user} signOut={signOut} />
           
-          <ChatInterface
+          <EnhancedChatInterface
             messages={messages}
             isLoading={isLoading}
             loadingMessage={loadingMessage}
@@ -753,7 +759,7 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
             scrollToBottom={scrollToBottom}
           />
           
-          <InputArea
+          <MobileOptimizedInput
             input={input}
             setInput={setInput}
             attachedFile={attachedFile}
@@ -769,11 +775,12 @@ ${updatedHistory.map(m => `${m.role}: ${m.parts[0].text}`).join('\n')}
             handleImageGeneration={handleImageGeneration}
             onFormSubmit={onFormSubmit}
             fileInputRef={fileInputRef}
+            onVoiceTranscription={handleVoiceTranscription}
           />
         </div>
 
         <Sheet open={isCoderPanelOpen} onOpenChange={setIsCoderPanelOpen}>
-          <SheetContent side="right" className="w-full sm:w-[700px] bg-background border-border">
+          <SheetContent side="right" className={`bg-background border-border ${isMobile ? 'w-full' : 'w-full sm:w-[700px]'}`}>
             <SheetHeader>
               <SheetTitle className="flex items-center gap-2">
                 <Code size={20} />
