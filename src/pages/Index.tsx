@@ -87,6 +87,24 @@ const Index = () => {
   const [currentProjectTitle, setCurrentProjectTitle] = useState("");
   const [streamingMessageIndex, setStreamingMessageIndex] = useState<number | null>(null);
 
+  // Determine which loading messages to show based on context
+  const currentLoadingSet = React.useMemo(() => {
+    if (attachedFile) {
+      if (attachedFile.type.startsWith("image/")) {
+        return loadingMessagesSets.image;
+      } else {
+        return loadingMessagesSets.file;
+      }
+    }
+    if (isDeepSearchMode) {
+      return loadingMessagesSets.search;
+    }
+    if (isCoderMode) {
+      return loadingMessagesSets.code;
+    }
+    return loadingMessagesSets.default;
+  }, [attachedFile, isDeepSearchMode, isCoderMode]);
+
   const { data: userProfile, refetch: refetchProfile } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async () => {
@@ -155,6 +173,16 @@ const Index = () => {
       setActiveConversationId(null);
     }
   }, [conversations, user]);
+
+  const handleNewChat = async () => {
+    setMessages([]);
+    setActiveConversationId(null);
+    setInput("");
+    setAttachedFile(null);
+    setIsLiveCodingOpen(false);
+    setCurrentGeneratedCode("");
+    setCurrentProjectTitle("");
+  };
 
   const handleSelectConversation = async (conversationId: string) => {
     if (isLoading) return;
@@ -457,11 +485,11 @@ Build a complete, functional application:`;
           tempApiKey={""}
           setTempApiKey={() => {}}
           handleSaveApiKey={() => {}}
-          handleNewChat={() => {}}
-          conversations={[]}
-          activeConversationId={""}
-          onSelectConversation={() => {}}
-          onDeleteConversation={() => {}}
+          handleNewChat={handleNewChat}
+          conversations={conversations || []}
+          activeConversationId={activeConversationId}
+          onSelectConversation={handleSelectConversation}
+          onDeleteConversation={handleDeleteConversation}
           userProfile={userProfile}
           onUpdateProfile={async (data: any) => {
             const { error } = await supabase
