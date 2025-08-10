@@ -77,7 +77,7 @@ const Index = () => {
   const { user, signOut } = useAuth();
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const queryClient = useQueryClient();
-  const [isCoderMode, setIsCoderMode] = useState(true); // Default to true for always coding
+  const [isCoderMode, setIsCoderMode] = useState(true);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDeepSearchMode, setIsDeepSearchMode] = useState(false);
@@ -278,7 +278,6 @@ const Index = () => {
     }
   }, [user]);
   
-  // Add scroll detection
   useEffect(() => {
     const chatContainer = document.querySelector('main');
     if (!chatContainer) return;
@@ -362,7 +361,6 @@ const Index = () => {
     
     let finalApiPrompt = apiPrompt;
     
-    // Enhanced prompting for always generating code
     if (isCoderMode && !apiPrompt.toLowerCase().startsWith("generate image:")) {
       setCurrentProjectTitle(userInput);
       setLoadingMessage("Generating production-ready code...");
@@ -431,7 +429,6 @@ Build a complete, functional application:`;
       let modelMessage: StreamingMessage;
       
       if (isCoderMode && !apiPrompt.toLowerCase().startsWith("generate image:")) {
-        // Show live coding canvas
         setCurrentGeneratedCode(response);
         setIsLiveCodingOpen(true);
         
@@ -444,7 +441,6 @@ Build a complete, functional application:`;
         modelMessage = { role: "model", parts: [{ text: response }] };
       }
       
-      // Add message and enable streaming for the new message
       setMessages((prev) => {
         const newIndex = prev.length;
         setStreamingMessageIndex(newIndex);
@@ -478,7 +474,7 @@ Build a complete, functional application:`;
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-full bg-gradient-to-br from-slate-50 to-white overflow-hidden">
+      <div className="flex h-screen w-full overflow-hidden">
         <AppSidebar
           isSettingsOpen={false}
           setIsSettingsOpen={() => {}}
@@ -510,7 +506,6 @@ Build a complete, functional application:`;
         <div className="flex flex-col flex-1 min-w-0">
           <UserHeader user={user} signOut={signOut} />
           
-          {/* Main Chat Area */}
           <main className="flex-1 overflow-y-auto relative">
             <div className={`mx-auto space-y-2 p-4 sm:p-6 ${isMobile ? 'max-w-full' : 'max-w-4xl'}`}>
               {messages.map((msg, index) => (
@@ -527,12 +522,12 @@ Build a complete, functional application:`;
 
               {isLoading && (
                 <div className="flex items-start gap-4 py-6">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center border border-slate-200 shadow-lg">
-                    <Bot size={18} className="text-slate-700" />
+                  <div className="flex-shrink-0 w-10 h-10 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20 shadow-lg backdrop-blur-xl">
+                    <Bot size={18} className="text-primary" />
                   </div>
-                  <div className="bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-3xl rounded-tl-lg px-6 py-4 shadow-lg flex items-center gap-3">
-                    <div className="w-6 h-6 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
-                    <p className="text-slate-700 font-medium">{loadingMessage}</p>
+                  <div className="card-modern px-6 py-4 shadow-lg flex items-center gap-3">
+                    <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                    <p className="text-foreground font-medium">{loadingMessage}</p>
                   </div>
                 </div>
               )}
@@ -542,10 +537,10 @@ Build a complete, functional application:`;
                   <div className="mb-8">
                     <ThreeScene />
                   </div>
-                  <h2 className={`font-bold text-slate-800 mb-4 ${isMobile ? 'text-2xl' : 'text-4xl'}`}>
+                  <h2 className={`font-bold text-gradient mb-4 ${isMobile ? 'text-2xl' : 'text-4xl'}`}>
                     Welcome to AdiGon AI
                   </h2>
-                  <p className={`text-slate-600 mb-12 max-w-2xl mx-auto ${isMobile ? 'text-base px-4' : 'text-xl'}`}>
+                  <p className={`text-muted-foreground mb-12 max-w-2xl mx-auto ${isMobile ? 'text-base px-4' : 'text-xl'}`}>
                     Your AI developer that builds complete applications. Just describe what you want, and I'll code it!
                   </p>
                   <div className={`grid gap-4 max-w-4xl mx-auto px-4 ${
@@ -557,12 +552,12 @@ Build a complete, functional application:`;
                         <button 
                           key={prompt.text}
                           onClick={() => handleSendMessage(prompt.text)}
-                          className="group p-6 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 hover:border-slate-300 transition-all duration-300 transform hover:-translate-y-2 hover:shadow-xl text-left"
+                          className="group card-modern p-6 hover-lift text-left transition-all duration-300"
                         >
-                          <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-3 rounded-xl text-white mb-4 w-fit group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-blue-500/30">
+                          <div className="bg-gradient-to-br from-primary/20 to-primary/10 p-3 rounded-xl text-primary mb-4 w-fit group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-primary/20">
                             <Icon size={24} />
                           </div>
-                          <span className="font-semibold text-slate-800 text-sm leading-tight">
+                          <span className="font-semibold text-foreground text-sm leading-tight">
                             {prompt.text}
                           </span>
                         </button>
@@ -575,12 +570,11 @@ Build a complete, functional application:`;
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Scroll to bottom button */}
             {showScrollButton && (
               <Button
                 onClick={scrollToBottom}
                 size="icon"
-                className="fixed bottom-24 right-8 h-12 w-12 rounded-full bg-blue-500 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 z-10"
+                className="fixed bottom-24 right-8 h-12 w-12 rounded-full button-modern z-10"
               >
                 <ArrowDown size={20} />
               </Button>

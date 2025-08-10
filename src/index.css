@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,26 +7,34 @@
 
 @layer base {
   :root {
-    --background: 240 10% 3.9%;
+    --background: 222 84% 4.9%;
     --foreground: 210 40% 98%;
-    --card: 240 10% 3.9%;
+    --card: 222 84% 4.9%;
     --card-foreground: 210 40% 98%;
-    --popover: 240 10% 3.9%;
+    --popover: 222 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 262 88% 65%;
+    --primary: 262 83% 58%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 240 5% 15%;
+    --secondary: 217 32% 17%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 240 5% 25%;
+    --muted: 217 32% 17%;
     --muted-foreground: 215 20% 65%;
-    --accent: 262 88% 65%;
+    --accent: 262 83% 58%;
     --accent-foreground: 210 40% 98%;
-    --destructive: 0 63% 31%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
-    --border: 240 5% 20%;
-    --input: 240 5% 18%;
-    --ring: 262 88% 70%;
+    --border: 217 32% 17%;
+    --input: 217 32% 17%;
+    --ring: 262 83% 58%;
     --radius: 0.75rem;
+    --sidebar-background: 222 84% 4.9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 262 83% 58%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 217 32% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 32% 17%;
+    --sidebar-ring: 262 83% 58%;
   }
 }
 
@@ -117,6 +126,15 @@
   100% { transform: translateX(100%); }
 }
 
+@keyframes gradient-shift {
+  0%, 100% { 
+    background-position: 0% 50%; 
+  }
+  50% { 
+    background-position: 100% 50%; 
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -124,24 +142,38 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', sans-serif;
-    background-size: 400% 400%;
-    background-image: linear-gradient(
-      -45deg,
-      hsl(240, 30%, 8%),
-      hsl(230, 25%, 12%),
-      hsl(260, 35%, 15%),
-      hsl(230, 25%, 12%),
-      hsl(240, 30%, 8%)
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-feature-settings: 'cv11', 'ss01';
+    font-variation-settings: 'opsz' 32;
+    background: linear-gradient(
+      135deg,
+      #0a0a0f 0%,
+      #1a1a2e 25%,
+      #16213e 50%,
+      #1a1a2e 75%,
+      #0a0a0f 100%
     );
-    animation: background-pan 25s ease infinite;
+    background-size: 400% 400%;
+    animation: gradient-shift 20s ease infinite;
+    min-height: 100vh;
   }
 
   .glass-effect {
-    backdrop-filter: blur(16px);
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(24px) saturate(200%);
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .glass-card {
+    @apply backdrop-blur-xl border shadow-2xl;
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.06);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 
   .animate-float {
@@ -178,23 +210,23 @@
 
 @layer base {
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    background: hsl(var(--background));
+    background: transparent;
     border-radius: 10px;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: linear-gradient(45deg, hsl(var(--primary)/0.3), hsl(var(--accent)/0.3));
+    background: linear-gradient(45deg, hsl(var(--primary)/0.4), hsl(var(--accent)/0.4));
     border-radius: 10px;
-    border: 2px solid hsl(var(--background));
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(45deg, hsl(var(--primary)/0.6), hsl(var(--accent)/0.6));
+    background: linear-gradient(45deg, hsl(var(--primary)/0.7), hsl(var(--accent)/0.7));
   }
 
   ::-webkit-scrollbar-corner {
@@ -251,21 +283,93 @@
     animation: progress-bar 2s linear infinite;
   }
 
-  .glass-card {
-    @apply bg-card/50 backdrop-blur-xl border border-border/50 shadow-xl;
-  }
-
   .hover-lift {
-    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl;
   }
 
   .text-gradient {
-    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary via-purple-400 to-accent bg-clip-text text-transparent;
   }
 
   .border-gradient {
     background: linear-gradient(var(--background), var(--background)) padding-box,
                 linear-gradient(45deg, hsl(var(--primary)), hsl(var(--accent))) border-box;
     border: 1px solid transparent;
+  }
+
+  .chat-message-user {
+    @apply bg-gradient-to-br from-primary/20 to-primary/10 border-primary/20;
+    backdrop-filter: blur(16px);
+  }
+
+  .chat-message-ai {
+    @apply bg-gradient-to-br from-slate-800/40 to-slate-900/40 border-slate-700/40;
+    backdrop-filter: blur(16px);
+  }
+
+  .sidebar-item {
+    @apply relative overflow-hidden rounded-xl transition-all duration-300;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transform: translateX(4px);
+  }
+
+  .sidebar-item.active {
+    background: linear-gradient(135deg, hsl(var(--primary)/0.2), hsl(var(--accent)/0.2));
+    border: 1px solid hsl(var(--primary)/0.3);
+  }
+
+  .input-modern {
+    @apply bg-slate-800/50 border-slate-700/50 backdrop-blur-xl;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .input-modern:focus {
+    @apply border-primary/50 bg-slate-800/70;
+    box-shadow: 
+      inset 0 2px 8px rgba(0, 0, 0, 0.3),
+      0 0 0 2px hsl(var(--primary)/0.2);
+  }
+
+  .button-modern {
+    @apply relative overflow-hidden rounded-xl font-medium transition-all duration-300;
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    box-shadow: 
+      0 4px 16px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .button-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      0 8px 24px rgba(0, 0, 0, 0.4),
+      0 0 20px hsl(var(--primary)/0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .button-modern:active {
+    transform: translateY(0);
+  }
+
+  .card-modern {
+    @apply rounded-2xl border backdrop-blur-xl transition-all duration-300;
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .card-modern:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 
+      0 16px 48px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 }
