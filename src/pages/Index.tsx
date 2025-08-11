@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/providers/AuthProvider';
 import { toast } from '@/components/ui/sonner';
@@ -10,6 +9,7 @@ import GeminiInspiredChatInterface from '@/components/GeminiInspiredChatInterfac
 import GeminiInspiredInputArea from '@/components/GeminiInspiredInputArea';
 import { Message } from '@/components/ChatMessage';
 import { useQuery } from '@tanstack/react-query';
+import { SidebarProvider } from '@/components/ui/sidebar';
 
 const loadingMessages = [
   "Thinking deeply about your request...",
@@ -368,53 +368,55 @@ const Index = () => {
   }, [messages.length]);
 
   return (
-    <div className="flex h-screen w-full bg-slate-950 overflow-hidden">
-      <AppSidebar
-        isSettingsOpen={isSettingsOpen}
-        setIsSettingsOpen={setIsSettingsOpen}
-        tempApiKey={tempApiKey}
-        setTempApiKey={setTempApiKey}
-        handleSaveApiKey={handleSaveApiKey}
-        handleNewChat={handleNewChat}
-        conversations={conversations}
-        activeConversationId={activeConversationId}
-        onSelectConversation={handleSelectConversation}
-        onDeleteConversation={handleDeleteConversation}
-      />
-      
-      <div className="flex flex-col flex-1 min-w-0">
-        <GeminiInspiredChatInterface
-          messages={messages}
-          isLoading={isLoading}
-          loadingMessage={loadingMessage}
-          examplePrompts={examplePrompts}
-          handleSendMessage={handleSendMessage}
-          onReviewCode={onReviewCode}
-          messagesEndRef={messagesEndRef}
-          showScrollButton={showScrollButton}
-          scrollToBottom={scrollToBottom}
+    <SidebarProvider>
+      <div className="flex h-screen w-full bg-slate-950 overflow-hidden">
+        <AppSidebar
+          isSettingsOpen={isSettingsOpen}
+          setIsSettingsOpen={setIsSettingsOpen}
+          tempApiKey={tempApiKey}
+          setTempApiKey={setTempApiKey}
+          handleSaveApiKey={handleSaveApiKey}
+          handleNewChat={handleNewChat}
+          conversations={conversations}
+          activeConversationId={activeConversationId}
+          onSelectConversation={handleSelectConversation}
+          onDeleteConversation={handleDeleteConversation}
         />
         
-        <GeminiInspiredInputArea
-          input={input}
-          setInput={setInput}
-          attachedFile={attachedFile}
-          setAttachedFile={setAttachedFile}
-          isLoading={isLoading}
-          user={user}
-          isCoderMode={isCoderMode}
-          setIsCoderMode={setIsCoderMode}
-          isDeepSearchMode={isDeepSearchMode}
-          setIsDeepSearchMode={setIsDeepSearchMode}
-          handleAttachFileClick={handleAttachFileClick}
-          handleFileSelect={handleFileSelect}
-          handleImageGeneration={handleImageGeneration}
-          onFormSubmit={onFormSubmit}
-          fileInputRef={fileInputRef}
-          onVoiceTranscription={handleVoiceTranscription}
-        />
+        <div className="flex flex-col flex-1 min-w-0">
+          <GeminiInspiredChatInterface
+            messages={messages}
+            isLoading={isLoading}
+            loadingMessage={loadingMessage}
+            examplePrompts={examplePrompts}
+            handleSendMessage={handleSendMessage}
+            onReviewCode={onReviewCode}
+            messagesEndRef={messagesEndRef}
+            showScrollButton={showScrollButton}
+            scrollToBottom={scrollToBottom}
+          />
+          
+          <GeminiInspiredInputArea
+            input={input}
+            setInput={setInput}
+            attachedFile={attachedFile}
+            setAttachedFile={setAttachedFile}
+            isLoading={isLoading}
+            user={user}
+            isCoderMode={isCoderMode}
+            setIsCoderMode={setIsCoderMode}
+            isDeepSearchMode={isDeepSearchMode}
+            setIsDeepSearchMode={setIsDeepSearchMode}
+            handleAttachFileClick={handleAttachFileClick}
+            handleFileSelect={handleFileSelect}
+            handleImageGeneration={handleImageGeneration}
+            onFormSubmit={onFormSubmit}
+            fileInputRef={fileInputRef}
+            onVoiceTranscription={handleVoiceTranscription}
+          />
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 
