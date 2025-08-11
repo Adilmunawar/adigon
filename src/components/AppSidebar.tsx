@@ -1,52 +1,65 @@
+import * as React from "react"
+import { useState } from "react"
+import {
+  MessageSquare,
+  Plus,
+  Settings,
+  Trash2,
+  Bot,
+  Key,
+  LogOut,
+  User,
+  Zap
+} from "lucide-react"
 
-import React from 'react';
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Sidebar,
   SidebarContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel
-} from "@/components/ui/sidebar";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Settings, RefreshCw, Bot, MessageSquare, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+  SidebarTrigger,
+} from "@/components/ui/sidebar"
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useSidebar } from './ui/sidebar';
-import AdvancedSettings from '@/components/AdvancedSettings';
-
-interface Conversation {
-  id: string;
-  title: string;
-}
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { useAuth } from "@/providers/AuthProvider"
+import { supabase } from "@/integrations/supabase/client"
+import { toast } from "@/components/ui/sonner"
+import AdvancedSettings from "./AdvancedSettings"
 
 interface AppSidebarProps {
-  isSettingsOpen: boolean;
-  setIsSettingsOpen: (isOpen: boolean) => void;
-  tempApiKey: string;
-  setTempApiKey: (key: string) => void;
-  handleSaveApiKey: () => void;
-  handleNewChat: () => void;
-  conversations: Conversation[];
-  activeConversationId: string | null;
-  onSelectConversation: (id: string) => void;
-  onDeleteConversation: (id: string) => void;
+  isSettingsOpen: boolean
+  setIsSettingsOpen: (open: boolean) => void
+  tempApiKey: string
+  setTempApiKey: (key: string) => void
+  handleSaveApiKey: () => void
+  handleNewChat: () => Promise<void>
+  conversations: { id: string; title: string }[]
+  activeConversationId: string | null
+  onSelectConversation: (id: string) => void
+  onDeleteConversation: (id: string) => void
 }
 
 export default function AppSidebar({
@@ -59,111 +72,214 @@ export default function AppSidebar({
   conversations,
   activeConversationId,
   onSelectConversation,
-  onDeleteConversation
+  onDeleteConversation,
 }: AppSidebarProps) {
-  const { collapsed } = useSidebar();
+  const { user, signOut } = useAuth()
+  const [isAdvancedSettingsOpen, setIsAdvancedSettingsOpen] = useState(false)
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      toast.success("Signed out successfully!")
+    } catch (error) {
+      toast.error("Error signing out")
+    }
+  }
 
   return (
-    <Sidebar className="border-r border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <SidebarHeader className="border-b border-border/40">
-        <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center text-primary shrink-0">
-                <Bot size={24} />
+    <>
+      <Sidebar variant="sidebar" className="bg-slate-900 border-slate-800">
+        <SidebarHeader className="border-b border-slate-800 p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
+              <Bot className="w-6 h-6 text-white" />
             </div>
-            {!collapsed && (
-              <h1 className="text-xl font-semibold bg-gradient-to-r from-blue-400 to-purple-500 text-transparent bg-clip-text">
-                  AdiGon
-              </h1>
-            )}
-        </div>
-      </SidebarHeader>
-      <SidebarContent className="flex flex-col overflow-hidden">
-        <SidebarGroup className="py-2">
-          <SidebarGroupContent>
-            <SidebarMenu>
+            <div>
+              <h1 className="text-xl font-bold text-white">AdiGon AI</h1>
+              <p className="text-sm text-slate-400">Intelligent Assistant</p>
+            </div>
+          </div>
+        </SidebarHeader>
+
+        <SidebarContent className="p-4">
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-slate-400 text-xs uppercase tracking-wider mb-3">
+              Chat
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    onClick={handleNewChat}
+                    className="w-full justify-start gap-3 p-3 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 hover:border-blue-500/40 text-blue-400 hover:text-blue-300 rounded-xl transition-all duration-200"
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span className="font-medium">New Chat</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          {conversations.length > 0 && (
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-slate-400 text-xs uppercase tracking-wider mb-3">
+                Recent Chats
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {conversations.slice(0, 10).map((conversation) => (
+                    <SidebarMenuItem key={conversation.id}>
+                      <div className="flex items-center gap-2 group">
+                        <SidebarMenuButton
+                          onClick={() => onSelectConversation(conversation.id)}
+                          className={cn(
+                            "flex-1 justify-start gap-3 p-3 rounded-xl transition-all duration-200 truncate",
+                            activeConversationId === conversation.id
+                              ? "bg-slate-800 text-white border border-slate-700"
+                              : "text-slate-300 hover:bg-slate-800/50 hover:text-white"
+                          )}
+                        >
+                          <MessageSquare className="w-4 h-4 flex-shrink-0" />
+                          <span className="truncate text-sm">{conversation.title}</span>
+                        </SidebarMenuButton>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onDeleteConversation(conversation.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-8 w-8 text-slate-500 hover:text-red-400 hover:bg-red-500/10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
+        </SidebarContent>
+
+        <SidebarFooter className="border-t border-slate-800 p-4">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton 
+                onClick={() => setIsSettingsOpen(true)}
+                className="w-full justify-start gap-3 p-3 text-slate-300 hover:bg-slate-800/50 hover:text-white rounded-xl transition-all duration-200"
+              >
+                <Key className="w-5 h-5" />
+                <span>API Settings</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton 
+                onClick={() => setIsAdvancedSettingsOpen(true)}
+                className="w-full justify-start gap-3 p-3 text-slate-300 hover:bg-slate-800/50 hover:text-white rounded-xl transition-all duration-200"
+              >
+                <Settings className="w-5 h-5" />
+                <span>Advanced Settings</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            {user && (
               <SidebarMenuItem>
-                <SidebarMenuButton onClick={handleNewChat} className="w-full">
-                    <RefreshCw size={18} />
-                    {!collapsed && <span>New Chat</span>}
+                <SidebarMenuButton 
+                  onClick={handleSignOut}
+                  className="w-full justify-start gap-3 p-3 text-slate-300 hover:bg-red-500/10 hover:text-red-400 rounded-xl transition-all duration-200"
+                >
+                  <LogOut className="w-5 h-5" />
+                  <span>Sign Out</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+            )}
+          </SidebarMenu>
+          
+          {user && (
+            <div className="mt-4 p-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+                  <User className="w-4 h-4 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate">
+                    {user.email}
+                  </p>
+                  <p className="text-xs text-slate-400">Authenticated</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
 
-        <SidebarGroup className="flex-1 overflow-hidden">
-          {!collapsed && <SidebarGroupLabel>History</SidebarGroupLabel>}
-          <SidebarGroupContent className="overflow-hidden">
-            <ScrollArea className="h-full">
-              <SidebarMenu className="space-y-1 pr-2">
-                {conversations.map((convo) => (
-                  <SidebarMenuItem key={convo.id}>
-                    <div className="group flex items-center w-full">
-                      <SidebarMenuButton
-                        onClick={() => onSelectConversation(convo.id)}
-                        variant={activeConversationId === convo.id ? "secondary" : "ghost"}
-                        className="w-full justify-start truncate flex-1 pr-1"
-                      >
-                        {!collapsed && <span className="truncate flex-1 text-left">{convo.title}</span>}
-                      </SidebarMenuButton>
-                      {!collapsed && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Trash2 size={16} />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent className="bg-background">
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete this conversation.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => onDeleteConversation(convo.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
-                    </div>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </ScrollArea>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        
-        <SidebarGroup className="mt-auto border-t border-border/40 py-2">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                 <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-                    <DialogTrigger asChild>
-                      <SidebarMenuButton className="w-full">
-                        <Settings size={18} />
-                        {!collapsed && <span>Advanced Settings</span>}
-                      </SidebarMenuButton>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl max-h-[90vh]">
-                      <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                          <Settings className="h-5 w-5" />
-                          Advanced Settings
-                        </DialogTitle>
-                        <DialogDescription>
-                          Customize your AI experience with advanced options and preferences.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <AdvancedSettings />
-                    </DialogContent>
-                  </Dialog>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-    </Sidebar>
-  );
+      {/* API Settings Sheet */}
+      <Sheet open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+        <SheetContent side="left" className="w-96 bg-slate-900 border-slate-800">
+          <SheetHeader>
+            <SheetTitle className="text-white flex items-center gap-2">
+              <Key className="w-5 h-5" />
+              API Configuration
+            </SheetTitle>
+            <SheetDescription className="text-slate-400">
+              Configure your Gemini API key to start chatting
+            </SheetDescription>
+          </SheetHeader>
+          
+          <div className="space-y-6 mt-6">
+            <div className="space-y-3">
+              <Label htmlFor="api-key" className="text-white font-medium">
+                Gemini API Key
+              </Label>
+              <Input
+                id="api-key"
+                type="password"
+                placeholder="Enter your API key..."
+                value={tempApiKey}
+                onChange={(e) => setTempApiKey(e.target.value)}
+                className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:border-blue-500"
+              />
+              <p className="text-sm text-slate-400">
+                Get your API key from{" "}
+                <a
+                  href="https://makersuite.google.com/app/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 underline"
+                >
+                  Google AI Studio
+                </a>
+              </p>
+            </div>
+            
+            <Button 
+              onClick={handleSaveApiKey} 
+              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium"
+            >
+              <Zap className="w-4 h-4 mr-2" />
+              Save Configuration
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Advanced Settings Dialog */}
+      <Dialog open={isAdvancedSettingsOpen} onOpenChange={setIsAdvancedSettingsOpen}>
+        <DialogContent className="max-w-4xl w-full bg-slate-900 border-slate-800 text-white max-h-[90vh] overflow-hidden p-0">
+          <DialogHeader className="p-6 pb-0">
+            <DialogTitle className="text-white flex items-center gap-2 text-xl">
+              <Settings className="w-6 h-6" />
+              Advanced Settings
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Customize your AI experience and manage your preferences
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="overflow-y-auto flex-1">
+            <AdvancedSettings />
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
 }

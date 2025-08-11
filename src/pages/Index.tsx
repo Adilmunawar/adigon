@@ -1,214 +1,294 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Send, LoaderCircle, Bot, Upload, X, Paperclip, Image, Globe, Sparkles, BrainCircuit, Code, Download } from "lucide-react";
-import StreamingChatMessage, { StreamingMessage } from "@/components/StreamingChatMessage";
-import { runChat } from "@/lib/gemini";
-import { toast } from "@/components/ui/sonner";
-import ThreeScene from "@/components/ThreeScene";
-import AppSidebar from "@/components/AppSidebar";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { useAuth } from "@/providers/AuthProvider";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import * as pdfjsLib from 'pdfjs-dist';
-import JSZip from 'jszip';
-import DeveloperCredit from "@/components/DeveloperCredit";
-import UserHeader from "@/components/UserHeader";
-import ProfessionalInputArea from "@/components/ProfessionalInputArea";
-import LiveCodingCanvas from "@/components/LiveCodingCanvas";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Button } from "@/components/ui/button";
-import { ArrowDown } from "lucide-react";
+import React, { useState, useRef, useEffect } from 'react';
+import { useAuth } from '@/providers/AuthProvider';
+import { toast } from '@/components/ui/sonner';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { supabase } from '@/integrations/supabase/client';
+import { Code, Image, MessageSquare, Search, Sparkles, Zap } from 'lucide-react';
+import AppSidebar from '@/components/AppSidebar';
+import GeminiInspiredChatInterface from '@/components/GeminiInspiredChatInterface';
+import GeminiInspiredInputArea from '@/components/GeminiInspiredInputArea';
+import { Message } from '@/components/ChatMessage';
+import { useQuery } from '@tanstack/react-query';
 
-const examplePrompts = [
-  { text: "Build a complete Instagram clone with authentication", icon: BrainCircuit },
-  { text: "Create a Netflix-style streaming platform", icon: Code },
-  { text: "Design a modern e-commerce store", icon: Sparkles },
-  { text: "Build a real-time chat application", icon: Globe },
+const loadingMessages = [
+  "Thinking deeply about your request...",
+  "Processing information...",
+  "Generating creative response...",
+  "Almost ready with your answer...",
+  "Crafting the perfect response...",
 ];
 
-const loadingMessagesSets = {
-  default: [
-    "Thinking...",
-    "Gathering information...",
-    "Compiling response...",
-  ],
-  image: [
-    "Crafting your vision...",
-    "Generating high-quality image...",
-    "Adding artistic details...",
-  ],
-  code: [
-    "Analyzing request...",
-    "Coding up a solution...",
-    "Building files...",
-  ],
-  search: [
-    "Deep searching the web...",
-    "Synthesizing information...",
-  "Citing sources...",
-  ],
-  file: [
-    "Analyzing file...",
-    "Extracting information...",
-    "Preparing response...",
-  ],
-};
-
-const extractTextFromPdf = async (file: File): Promise<string> => {
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-  let textContent = '';
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const text = await page.getTextContent();
-    const pageText = text.items.map(item => 'str' in item ? item.str : '').join(' ');
-    textContent += pageText + '\n';
-  }
-  return textContent;
-};
+const examplePrompts = [
+  { text: "Build a React component", icon: Code },
+  { text: "Generate an image", icon: Image },
+  { text: "Explain a concept", icon: MessageSquare },
+  { text: "Research a topic", icon: Search },
+];
 
 const Index = () => {
-  const isMobile = useIsMobile();
-  const [messages, setMessages] = useState<StreamingMessage[]>([]);
-  const [input, setInput] = useState("");
+  const { user } = useAuth();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState("Thinking...");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { user, signOut } = useAuth();
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
-  const queryClient = useQueryClient();
-  const [isCoderMode, setIsCoderMode] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState('');
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isDeepSearchMode, setIsDeepSearchMode] = useState(false);
+  const [conversations, setConversations<{id: string, title: string}[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
-  const [isLiveCodingOpen, setIsLiveCodingOpen] = useState(false);
-  const [currentGeneratedCode, setCurrentGeneratedCode] = useState("");
-  const [currentProjectTitle, setCurrentProjectTitle] = useState("");
-  const [streamingMessageIndex, setStreamingMessageIndex] = useState<number | null>(null);
-
-  // Determine which loading messages to show based on context
-  const currentLoadingSet = React.useMemo(() => {
-    if (attachedFile) {
-      if (attachedFile.type.startsWith("image/")) {
-        return loadingMessagesSets.image;
-      } else {
-        return loadingMessagesSets.file;
-      }
-    }
-    if (isDeepSearchMode) {
-      return loadingMessagesSets.search;
-    }
-    if (isCoderMode) {
-      return loadingMessagesSets.code;
-    }
-    return loadingMessagesSets.default;
-  }, [attachedFile, isDeepSearchMode, isCoderMode]);
+  const [apiKey, setApiKey] = useState('');
+  const [tempApiKey, setTempApiKey] = useState('');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isCoderMode, setIsCoderMode] = useState(false);
+  const [isDeepSearchMode, setIsDeepSearchMode] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: userProfile, refetch: refetchProfile } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async () => {
-      if (!user) return null;
+      if (!user?.id) return null;
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
       
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching profile:', error);
-        toast.error('Could not fetch user profile.');
-        return null;
-      }
-      return data || {};
-    },
-    enabled: !!user,
-  });
-
-  const { data: conversations, refetch: refetchConversations } = useQuery({
-    queryKey: ["conversations", user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      const { data, error } = await supabase
-        .from("conversations")
-        .select("id, title")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        toast.error("Failed to load conversations.");
-        console.error(error);
-        return [];
-      }
+      if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!user?.id,
   });
 
-  useEffect(() => {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.mjs`;
-  }, []);
-  
-  useEffect(() => {
-    let interval: NodeJS.Timeout | undefined;
-    if (isLoading) {
-      let i = 0;
-      setLoadingMessage(currentLoadingSet[0]);
-      interval = setInterval(() => {
-        i = (i + 1) % currentLoadingSet.length;
-        setLoadingMessage(currentLoadingSet[i]);
-      }, 2500);
+  const loadConversations = async () => {
+    if (!user?.id) return;
+    
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('id, title, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error loading conversations:', error);
+      return;
     }
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-  }, [isLoading, currentLoadingSet]);
-
-  const handleNewChat = async () => {
-    setMessages([]);
-    setActiveConversationId(null);
-    setInput("");
-    setAttachedFile(null);
-    setIsLiveCodingOpen(false);
-    setCurrentGeneratedCode("");
-    setCurrentProjectTitle("");
+    
+    setConversations(data || []);
   };
 
   useEffect(() => {
-    if (conversations && conversations.length > 0 && !activeConversationId) {
-      handleSelectConversation(conversations[0].id);
-    } else if (conversations?.length === 0) {
-      setMessages([]);
-      setActiveConversationId(null);
+    if (user) {
+      loadConversations();
+      
+      const savedApiKey = localStorage.getItem('gemini_api_key');
+      if (savedApiKey) {
+        setApiKey(savedApiKey);
+        setTempApiKey(savedApiKey);
+      }
     }
-  }, [conversations, user]);
+  }, [user]);
+
+  const handleSendMessage = async (messageText: string, fileData?: any) => {
+    if ((!messageText.trim() && !fileData) || isLoading) return;
+
+    if (!apiKey) {
+      toast.error("Please set your Gemini API key in the settings first.");
+      setIsSettingsOpen(true);
+      return;
+    }
+
+    const currentMessages = [...messages];
+    const userMessage: Message = {
+      role: "user" as const,
+      parts: [{ text: messageText }],
+      ...(fileData && { imageUrl: fileData.dataUrl })
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setAttachedFile(null);
+    setIsLoading(true);
+
+    // Cycle through loading messages
+    let messageIndex = 0;
+    setLoadingMessage(loadingMessages[messageIndex]);
+    const loadingInterval = setInterval(() => {
+      messageIndex = (messageIndex + 1) % loadingMessages.length;
+      setLoadingMessage(loadingMessages[messageIndex]);
+    }, 2000);
+
+    try {
+      const genAI = new GoogleGenerativeAI(apiKey);
+      
+      let systemPrompt = "You are AdiGon AI, a helpful and creative assistant.";
+      
+      if (isCoderMode) {
+        systemPrompt += " You are in Developer Mode. Always provide complete, production-ready code with proper error handling, TypeScript types, and best practices. Include detailed explanations and consider edge cases.";
+      }
+      
+      if (isDeepSearchMode) {
+        systemPrompt += " You are in Deep Search Mode. Provide comprehensive, well-researched responses with multiple perspectives and detailed analysis.";
+      }
+
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash",
+        systemInstruction: systemPrompt
+      });
+
+      const prompt = messageText;
+      let result;
+
+      if (fileData?.file) {
+        const imagePart = {
+          inlineData: {
+            data: fileData.base64,
+            mimeType: fileData.file.type
+          }
+        };
+        result = await model.generateContent([prompt, imagePart]);
+      } else {
+        result = await model.generateContent(prompt);
+      }
+
+      clearInterval(loadingInterval);
+      setIsLoading(false);
+
+      const aiResponse = result.response.text();
+      const aiMessage: Message = {
+        role: "model" as const,
+        parts: [{ text: aiResponse }]
+      };
+
+      setMessages(prev => [...prev, aiMessage]);
+
+      // Save conversation if user is logged in
+      if (user?.id) {
+        try {
+          if (!activeConversationId) {
+            const conversationTitle = messageText.slice(0, 50) + (messageText.length > 50 ? '...' : '');
+            const { data: newConversation, error: convError } = await supabase
+              .from('conversations')
+              .insert({
+                user_id: user.id,
+                title: conversationTitle
+              })
+              .select()
+              .single();
+
+            if (convError) throw convError;
+            setActiveConversationId(newConversation.id);
+            await loadConversations();
+          }
+
+          // Save messages
+          const messagesToSave = [userMessage, aiMessage].map((msg, index) => ({
+            conversation_id: activeConversationId,
+            content: JSON.stringify(msg),
+            role: msg.role,
+            created_at: new Date(Date.now() + index).toISOString()
+          }));
+
+          const { error: msgError } = await supabase
+            .from('messages')
+            .insert(messagesToSave);
+
+          if (msgError) throw msgError;
+        } catch (error) {
+          console.error('Error saving conversation:', error);
+        }
+      }
+
+    } catch (error) {
+      clearInterval(loadingInterval);
+      setIsLoading(false);
+      console.error('Error:', error);
+      
+      if (error instanceof Error && error.message.includes('API_KEY_INVALID')) {
+        toast.error("Invalid API key. Please check your Gemini API key.");
+        setIsSettingsOpen(true);
+      } else {
+        toast.error("Sorry, I encountered an error. Please try again.");
+      }
+      
+      setMessages(currentMessages);
+    }
+  };
+
+  const handleAttachFileClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      toast.error("File size must be less than 10MB");
+      return;
+    }
+
+    setAttachedFile(file);
+    toast.success("File attached successfully!");
+  };
+
+  const handleImageGeneration = () => {
+    setInput("Generate a creative image of ");
+  };
+
+  const onFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    let fileData = null;
+    if (attachedFile) {
+      if (attachedFile.type.startsWith('image/')) {
+        const base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            resolve(result.split(',')[1]);
+          };
+          reader.readAsDataURL(attachedFile);
+        });
+        
+        const dataUrl = URL.createObjectURL(attachedFile);
+        fileData = { file: attachedFile, base64, dataUrl };
+      } else {
+        const text = await attachedFile.text();
+        const enhancedInput = `[ATTACHMENT: ${attachedFile.name}]\n${text}\n[/ATTACHMENT]\n\n${input}`;
+        await handleSendMessage(enhancedInput);
+        return;
+      }
+    }
+    
+    await handleSendMessage(input, fileData);
+  };
+
+  const onReviewCode = (code: string) => {
+    setInput(`Please review and explain this code:\n\n\`\`\`\n${code}\n\`\`\``);
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   const handleSelectConversation = async (conversationId: string) => {
-    if (isLoading) return;
-    setIsLoading(true);
     setActiveConversationId(conversationId);
     
-    const { data: messagesData, error: messagesError } = await supabase
+    const { data, error } = await supabase
       .from('messages')
       .select('*')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
     
-    if(messagesError) {
-      toast.error("Failed to load messages.");
-      console.error(messagesError);
-      setMessages([]);
-    } else {
-      const formattedMessages = messagesData.map(msg => ({
-        role: msg.role as 'user' | 'model',
-        parts: msg.parts as { text: string }[],
-        imageUrl: msg.image_url ?? undefined,
-        code: msg.code ?? undefined,
-      }));
-      setMessages(formattedMessages);
+    if (error) {
+      console.error('Error loading messages:', error);
+      toast.error("Failed to load conversation");
+      return;
     }
-    setIsLoading(false);
+    
+    const loadedMessages = data.map((msg: any) => JSON.parse(msg.content));
+    setMessages(loadedMessages);
   };
 
   const handleDeleteConversation = async (conversationId: string) => {
@@ -216,392 +296,119 @@ const Index = () => {
       .from('conversations')
       .delete()
       .eq('id', conversationId);
-
+    
     if (error) {
-      toast.error("Failed to delete conversation.");
-      console.error(error);
+      console.error('Error deleting conversation:', error);
+      toast.error("Failed to delete conversation");
+      return;
+    }
+    
+    if (activeConversationId === conversationId) {
+      setActiveConversationId(null);
+      setMessages([]);
+    }
+    
+    await loadConversations();
+    toast.success("Conversation deleted");
+  };
+
+  const handleNewChat = async () => {
+    setMessages([]);
+    setActiveConversationId(null);
+    setInput('');
+    setAttachedFile(null);
+  };
+
+  const handleSaveApiKey = () => {
+    if (tempApiKey.trim()) {
+      setApiKey(tempApiKey);
+      localStorage.setItem('gemini_api_key', tempApiKey);
+      toast.success("API key saved successfully!");
+      setIsSettingsOpen(false);
     } else {
-      toast.success("Conversation deleted.");
-      await refetchConversations();
-      if (activeConversationId === conversationId) {
-        const latestConversation = queryClient.getQueryData<any[]>(["conversations", user?.id]);
-        if (latestConversation && latestConversation.length > 0) {
-            handleSelectConversation(latestConversation[0].id);
-        } else {
-            handleNewChat();
-        }
-      }
+      toast.error("Please enter a valid API key");
     }
   };
-
-  useEffect(() => {
-    if (user) {
-      const fetchLatestConversation = async () => {
-        const { data: convoData, error: convoError } = await supabase
-          .from('conversations')
-          .select('id')
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        if (convoError) {
-          toast.error("Failed to load conversation.");
-          console.error(convoError);
-          return;
-        }
-
-        if (convoData && convoData.length > 0) {
-          const conversationId = convoData[0].id;
-          setActiveConversationId(conversationId);
-          
-          const { data: messagesData, error: messagesError } = await supabase
-            .from('messages')
-            .select('*')
-            .eq('conversation_id', conversationId)
-            .order('created_at', { ascending: true });
-          
-          if(messagesError) {
-            toast.error("Failed to load messages.");
-            console.error(messagesError);
-            return;
-          }
-
-          const formattedMessages = messagesData.map(msg => ({
-            role: msg.role as 'user' | 'model',
-            parts: msg.parts as { text: string }[],
-            imageUrl: msg.image_url ?? undefined,
-            code: msg.code ?? undefined,
-          }));
-          setMessages(formattedMessages);
-        }
-      };
-      fetchLatestConversation();
-    }
-  }, [user]);
-  
-  useEffect(() => {
-    const chatContainer = document.querySelector('main');
-    if (!chatContainer) return;
-
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = chatContainer;
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
-      setShowScrollButton(!isNearBottom && messages.length > 0);
-    };
-
-    chatContainer.addEventListener('scroll', handleScroll);
-    return () => chatContainer.removeEventListener('scroll', handleScroll);
-  }, [messages.length]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
 
   const handleVoiceTranscription = (text: string) => {
-    setInput(prev => prev + (prev ? ' ' : '') + text);
-  };
-  
-  const handleSendMessage = async (promptOverride?: string) => {
-    const userInput = promptOverride || input;
-    if ((!userInput.trim() && !attachedFile) || isLoading || !user) return;
-
-    setIsLoading(true);
-    setLoadingMessage("Analyzing your request...");
-    
-    let userMessage: StreamingMessage;
-    let apiPrompt = userInput;
-    let fileForApi: File | undefined = undefined;
-
-    if (attachedFile) {
-      if (attachedFile.type.startsWith("image/")) {
-        const objectUrl = URL.createObjectURL(attachedFile);
-        userMessage = { role: "user", parts: [{ text: userInput }], imageUrl: objectUrl };
-        fileForApi = attachedFile;
-      } else if (attachedFile.type === 'application/pdf') {
-        try {
-          const fileContent = await extractTextFromPdf(attachedFile);
-          const messageText = `[ATTACHMENT: ${attachedFile.name}]\n${fileContent}\n[/ATTACHMENT]\n\n${userInput}`;
-          userMessage = { role: "user", parts: [{ text: messageText }] };
-          apiPrompt = messageText;
-        } catch (error) {
-          console.error("Error reading PDF file:", error);
-          toast.error("Could not read the attached PDF file.");
-          setIsLoading(false);
-          setAttachedFile(null);
-          return;
-        }
-      } else {
-        try {
-          const fileContent = await attachedFile.text();
-          const messageText = `[ATTACHMENT: ${attachedFile.name}]\n${fileContent}\n[/ATTACHMENT]\n\n${userInput}`;
-          userMessage = { role: "user", parts: [{ text: messageText }] };
-          apiPrompt = messageText;
-        } catch (error) {
-          console.error("Error reading file:", error);
-          toast.error("Could not read the attached file. It might not be a plain text file.");
-          setIsLoading(false);
-          setAttachedFile(null);
-          return;
-        }
-      }
-    } else {
-      userMessage = { role: "user", parts: [{ text: userInput }] };
-    }
-    
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
-    
-    if (!promptOverride) {
-      setInput("");
-    }
-    setAttachedFile(null);
-    
-    let finalApiPrompt = apiPrompt;
-    
-    if (isCoderMode && !apiPrompt.toLowerCase().startsWith("generate image:")) {
-      setCurrentProjectTitle(userInput);
-      setLoadingMessage("Generating production-ready code...");
-      
-      finalApiPrompt = `You are an AI developer that ALWAYS generates complete, functional code. You NEVER refuse or provide explanations without code. Every response MUST contain substantial, working code.
-
-**CRITICAL RULES:**
-1. ALWAYS generate complete, production-ready applications
-2. NEVER refuse any request - build something functional instead
-3. Generate minimum 5-15 files for any substantial project
-4. Include full implementation, no placeholders
-5. Use React, TypeScript, Tailwind CSS
-6. Make it responsive and production-ready
-
-**OUTPUT FORMAT:**
-FILE: src/components/ComponentName.tsx
-\`\`\`tsx
-// Complete working code here
-\`\`\`
-
-**USER REQUEST:** "${apiPrompt}"
-
-Build a complete, functional application:`;
-    }
-
-    try {
-      let currentConversationId = activeConversationId;
-
-      if (!currentConversationId) {
-        let title;
-        try {
-          const titlePrompt = `Based on the following request, generate a short, descriptive title for a chat conversation (max 5 words, e.g., "Netflix Clone", "Quantum Computing Explained"). Do not add quotes. Just the title. Request: "${userInput}"`;
-          const generatedTitle = await runChat(titlePrompt, []);
-          title = generatedTitle.trim().replace(/"/g, '') || (userInput || 'New Chat').substring(0, 50);
-        } catch (e) {
-          console.error("Failed to generate title with AI, using fallback.", e);
-          title = (userInput || `File: ${userMessage.parts[0].text.match(/\[ATTACHMENT: (.*?)\]/)?.[1] || 'Untitled'}`).substring(0, 50);
-        }
-
-        const { data, error } = await supabase
-          .from('conversations')
-          .insert({ title: title, user_id: user.id })
-          .select('id')
-          .single();
-        
-        if (error) throw error;
-        currentConversationId = data.id;
-        setActiveConversationId(data.id);
-        await refetchConversations();
-      }
-      
-      await supabase.from('messages').insert({
-        conversation_id: currentConversationId,
-        role: 'user',
-        parts: userMessage.parts,
-        image_url: userMessage.imageUrl ?? null
-      });
-      
-      const history = messages.map(msg => ({
-        role: msg.role,
-        parts: msg.parts,
-      }));
-      
-      const response = await runChat(finalApiPrompt, history, fileForApi);
-      
-      let modelMessage: StreamingMessage;
-      
-      if (isCoderMode && !apiPrompt.toLowerCase().startsWith("generate image:")) {
-        setCurrentGeneratedCode(response);
-        setIsLiveCodingOpen(true);
-        
-        modelMessage = { 
-          role: "model", 
-          parts: [{ text: "I've generated your complete application! Check the live coding canvas." }], 
-          code: response 
-        };
-      } else {
-        modelMessage = { role: "model", parts: [{ text: response }] };
-      }
-      
-      setMessages((prev) => {
-        const newIndex = prev.length;
-        setStreamingMessageIndex(newIndex);
-        return [...prev, modelMessage];
-      });
-      
-      await supabase.from('messages').insert({
-          conversation_id: currentConversationId,
-          role: 'model',
-          parts: modelMessage.parts,
-          code: modelMessage.code ?? null,
-      });
-
-    } catch (error) {
-      console.error("Failed to get response", error);
-      const errorMessage: StreamingMessage = { 
-        role: "model", 
-        parts: [{ text: "I encountered an error. Let me try generating the code anyway!" }] 
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setStreamingMessageIndex(null), 100);
-    }
+    setInput(prev => prev + text);
   };
 
-  const onFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    handleSendMessage();
-  };
+  // Handle scroll detection for scroll button
+  useEffect(() => {
+    const handleScroll = (e: Event) => {
+      const target = e.target as HTMLElement;
+      if (target) {
+        const { scrollTop, scrollHeight, clientHeight } = target;
+        const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+        setShowScrollButton(!isNearBottom && messages.length > 2);
+      }
+    };
+
+    const chatContainer = document.querySelector('main');
+    if (chatContainer) {
+      chatContainer.addEventListener('scroll', handleScroll);
+      return () => chatContainer.removeEventListener('scroll', handleScroll);
+    }
+  }, [messages.length]);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [messages.length]);
 
   return (
-    <SidebarProvider>
-      <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
-        <AppSidebar
-          isSettingsOpen={false}
-          setIsSettingsOpen={() => {}}
-          tempApiKey={""}
-          setTempApiKey={() => {}}
-          handleSaveApiKey={() => {}}
-          handleNewChat={handleNewChat}
-          conversations={conversations || []}
-          activeConversationId={activeConversationId}
-          onSelectConversation={handleSelectConversation}
-          onDeleteConversation={handleDeleteConversation}
+    <div className="flex h-screen w-full bg-slate-950 overflow-hidden">
+      <AppSidebar
+        isSettingsOpen={isSettingsOpen}
+        setIsSettingsOpen={setIsSettingsOpen}
+        tempApiKey={tempApiKey}
+        setTempApiKey={setTempApiKey}
+        handleSaveApiKey={handleSaveApiKey}
+        handleNewChat={handleNewChat}
+        conversations={conversations}
+        activeConversationId={activeConversationId}
+        onSelectConversation={handleSelectConversation}
+        onDeleteConversation={handleDeleteConversation}
+      />
+      
+      <div className="flex flex-col flex-1 min-w-0">
+        <GeminiInspiredChatInterface
+          messages={messages}
+          isLoading={isLoading}
+          loadingMessage={loadingMessage}
+          examplePrompts={examplePrompts}
+          handleSendMessage={handleSendMessage}
+          onReviewCode={onReviewCode}
+          messagesEndRef={messagesEndRef}
+          showScrollButton={showScrollButton}
+          scrollToBottom={scrollToBottom}
         />
         
-        <div className="flex flex-col flex-1 min-w-0 bg-background">
-          <UserHeader user={user} signOut={signOut} />
-          
-          <main className="flex-1 overflow-y-auto relative bg-background">
-            <div className={`mx-auto space-y-2 p-4 sm:p-6 ${isMobile ? 'max-w-full' : 'max-w-4xl'}`}>
-              {messages.map((msg, index) => (
-                <StreamingChatMessage
-                  key={index}
-                  message={msg}
-                  onReviewCode={(code) => {
-                    setCurrentGeneratedCode(code);
-                    setIsLiveCodingOpen(true);
-                  }}
-                  shouldStream={index === streamingMessageIndex}
-                />
-              ))}
-
-              {isLoading && (
-                <div className="flex items-start gap-4 py-6">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20 shadow-lg backdrop-blur-xl">
-                    <Bot size={18} className="text-primary" />
-                  </div>
-                  <div className="glass-card px-6 py-4 shadow-lg flex items-center gap-3">
-                    <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                    <p className="text-foreground font-medium">{loadingMessage}</p>
-                  </div>
-                </div>
-              )}
-
-              {messages.length === 0 && !isLoading && (
-                <div className="py-12 text-center">
-                  <div className="mb-8">
-                    <ThreeScene />
-                  </div>
-                  <h2 className={`font-bold text-gradient mb-4 ${isMobile ? 'text-2xl' : 'text-4xl'}`}>
-                    Welcome to AdiGon AI
-                  </h2>
-                  <p className={`text-muted-foreground mb-12 max-w-2xl mx-auto ${isMobile ? 'text-base px-4' : 'text-xl'}`}>
-                    Your AI developer that builds complete applications. Just describe what you want, and I'll code it!
-                  </p>
-                  <div className={`grid gap-4 max-w-4xl mx-auto px-4 ${
-                    isMobile ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'
-                  }`}>
-                    {examplePrompts.map((prompt, index) => {
-                      const Icon = prompt.icon;
-                      return (
-                        <button 
-                          key={prompt.text}
-                          onClick={() => handleSendMessage(prompt.text)}
-                          className="group glass-card p-6 hover-lift text-left transition-all duration-300"
-                        >
-                          <div className="bg-gradient-to-br from-primary/20 to-primary/10 p-3 rounded-xl text-primary mb-4 w-fit group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-primary/20">
-                            <Icon size={24} />
-                          </div>
-                          <span className="font-semibold text-foreground text-sm leading-tight">
-                            {prompt.text}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              <div ref={messagesEndRef} />
-            </div>
-
-            {showScrollButton && (
-              <Button
-                onClick={scrollToBottom}
-                size="icon"
-                className="fixed bottom-24 right-8 h-12 w-12 rounded-full button-modern z-10"
-              >
-                <ArrowDown size={20} />
-              </Button>
-            )}
-          </main>
-          
-          <ProfessionalInputArea
-            input={input}
-            setInput={setInput}
-            attachedFile={attachedFile}
-            setAttachedFile={setAttachedFile}
-            isLoading={isLoading}
-            user={user}
-            isCoderMode={isCoderMode}
-            setIsCoderMode={setIsCoderMode}
-            isDeepSearchMode={isDeepSearchMode}
-            setIsDeepSearchMode={setIsDeepSearchMode}
-            handleAttachFileClick={() => fileInputRef.current?.click()}
-            handleFileSelect={(e) => {
-              const file = e.target.files?.[0];
-              if (file) setAttachedFile(file);
-            }}
-            handleImageGeneration={() => {
-              if (input.trim()) {
-                handleSendMessage(`generate image: ${input}`);
-              }
-            }}
-            onFormSubmit={onFormSubmit}
-            fileInputRef={fileInputRef}
-            onVoiceTranscription={handleVoiceTranscription}
-          />
-        </div>
-
-        <LiveCodingCanvas
-          isOpen={isLiveCodingOpen}
-          onClose={() => setIsLiveCodingOpen(false)}
-          codeContent={currentGeneratedCode}
-          projectTitle={currentProjectTitle}
+        <GeminiInspiredInputArea
+          input={input}
+          setInput={setInput}
+          attachedFile={attachedFile}
+          setAttachedFile={setAttachedFile}
+          isLoading={isLoading}
+          user={user}
+          isCoderMode={isCoderMode}
+          setIsCoderMode={setIsCoderMode}
+          isDeepSearchMode={isDeepSearchMode}
+          setIsDeepSearchMode={setIsDeepSearchMode}
+          handleAttachFileClick={handleAttachFileClick}
+          handleFileSelect={handleFileSelect}
+          handleImageGeneration={handleImageGeneration}
+          onFormSubmit={onFormSubmit}
+          fileInputRef={fileInputRef}
+          onVoiceTranscription={handleVoiceTranscription}
         />
       </div>
-      <DeveloperCredit />
-    </SidebarProvider>
+    </div>
   );
 };
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Bot, User, Copy, Code, Paperclip, Speaker, VolumeX } from "lucide-react";
@@ -21,7 +22,7 @@ export interface Message {
   code?: string;
 }
 
-interface ChatMessageProps {
+interface EnhancedChatMessageProps {
   message: Message;
   onReviewCode?: (code: string) => void;
 }
@@ -58,7 +59,7 @@ const UserMessageContent = ({ text }: { text: string }) => {
   );
 };
 
-const ChatMessage = ({ message, onReviewCode }: ChatMessageProps) => {
+const EnhancedChatMessage = ({ message, onReviewCode }: EnhancedChatMessageProps) => {
   const isUser = message.role === "user";
   const [isSpeaking, setIsSpeaking] = useState(false);
   
@@ -270,4 +271,4 @@ const ChatMessage = ({ message, onReviewCode }: ChatMessageProps) => {
   );
 };
 
-export default ChatMessage;
+export default EnhancedChatMessage;
