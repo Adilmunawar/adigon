@@ -47,8 +47,6 @@ interface AppSidebarProps {
   activeConversationId: string | null;
   onSelectConversation: (id: string) => void;
   onDeleteConversation: (id: string) => void;
-  userProfile?: any;
-  onUpdateProfile?: (data: any) => void;
 }
 
 export default function AppSidebar({
@@ -61,9 +59,7 @@ export default function AppSidebar({
   conversations,
   activeConversationId,
   onSelectConversation,
-  onDeleteConversation,
-  userProfile,
-  onUpdateProfile
+  onDeleteConversation
 }: AppSidebarProps) {
   const { collapsed } = useSidebar();
 
@@ -160,10 +156,7 @@ export default function AppSidebar({
                           Customize your AI experience with advanced options and preferences.
                         </DialogDescription>
                       </DialogHeader>
-                      <AdvancedSettings 
-                        userProfile={userProfile} 
-                        onUpdateProfile={onUpdateProfile || (() => {})} 
-                      />
+                      <AdvancedSettings />
                     </DialogContent>
                   </Dialog>
               </SidebarMenuItem>
