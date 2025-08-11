@@ -1,12 +1,14 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/providers/AuthProvider';
 import { toast } from '@/components/ui/sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Code, Image, MessageSquare, Search, Sparkles, Zap, Cpu } from 'lucide-react';
+import { Code, MessageSquare, Search, Sparkles, Zap, Cpu, Brain } from 'lucide-react';
 import AppSidebar from '@/components/AppSidebar';
 import GeminiInspiredChatInterface from '@/components/GeminiInspiredChatInterface';
 import EnhancedChatInput from '@/components/EnhancedChatInput';
-import DeveloperCanvas from '@/components/DeveloperCanvas';
+import AdvancedDeveloperCanvas from '@/components/AdvancedDeveloperCanvas';
+import ThreeScene from '@/components/ThreeScene';
 import { Message } from '@/components/ChatMessage';
 import { useQuery } from '@tanstack/react-query';
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -16,17 +18,18 @@ import { Button } from '@/components/ui/button';
 const loadingMessages = [
   "Processing with advanced AI models...",
   "Analyzing your request across multiple systems...",
+  "Leveraging parallel processing capabilities...",
   "Generating optimized response...",
   "Finalizing comprehensive answer...",
   "Almost ready with your result...",
 ];
 
 const examplePrompts = [
-  { text: "Build a React component with TypeScript", icon: Code },
-  { text: "Create a professional dashboard", icon: Cpu },
-  { text: "Generate an artistic image", icon: Image },
-  { text: "Explain complex concepts simply", icon: MessageSquare },
-  { text: "Research latest technologies", icon: Search },
+  { text: "Build a complete Instagram clone with authentication", icon: Code },
+  { text: "Create a professional dashboard with analytics", icon: Cpu },
+  { text: "Develop a real-time chat application", icon: MessageSquare },
+  { text: "Generate a complex e-commerce platform", icon: Brain },
+  { text: "Research latest AI development trends", icon: Search },
 ];
 
 const Index = () => {
@@ -35,18 +38,15 @@ const Index = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
-  const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [conversations, setConversations] = useState<{id: string, title: string}[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isCoderMode, setIsCoderMode] = useState(false);
   const [isDeepSearchMode, setIsDeepSearchMode] = useState(false);
-  const [isDeveloperCanvasOpen, setIsDeveloperCanvasOpen] = useState(false);
-  const [developerCanvasCode, setDeveloperCanvasCode] = useState('');
+  const [isAdvancedCanvasOpen, setIsAdvancedCanvasOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: userProfile, refetch: refetchProfile } = useQuery({
+  const { data: userProfile } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
@@ -82,29 +82,8 @@ const Index = () => {
   useEffect(() => {
     if (user) {
       loadConversations();
-      
-      const savedApiKey = localStorage.getItem('gemini_api_key');
-      if (savedApiKey) {
-        setApiKey(savedApiKey);
-        setTempApiKey(savedApiKey);
-      }
     }
   }, [user]);
-
-  const [apiKey, setApiKey] = useState('');
-  const [tempApiKey, setTempApiKey] = useState('');
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
-  const handleSaveApiKey = () => {
-    if (tempApiKey.trim()) {
-      setApiKey(tempApiKey);
-      localStorage.setItem('gemini_api_key', tempApiKey);
-      toast.success("API key saved successfully!");
-      setIsSettingsOpen(false);
-    } else {
-      toast.error("Please enter a valid API key");
-    }
-  };
 
   const handleSelectConversation = async (conversationId: string) => {
     setActiveConversationId(conversationId);
@@ -150,10 +129,6 @@ const Index = () => {
     toast.success("Conversation deleted");
   };
 
-  const handleVoiceTranscription = (text: string) => {
-    setInput(prev => prev + text);
-  };
-
   // Handle scroll detection for scroll button
   useEffect(() => {
     const handleScroll = (e: Event) => {
@@ -193,7 +168,6 @@ const Index = () => {
 
     setMessages(prev => [...prev, userMessage]);
     setInput('');
-    setAttachedFile(null);
     setIsLoading(true);
 
     // Cycle through loading messages
@@ -205,14 +179,14 @@ const Index = () => {
     }, 2000);
 
     try {
-      let systemPrompt = "You are AdiGon AI, a sophisticated and helpful AI assistant with advanced capabilities.";
+      let systemPrompt = "You are AdiGon AI, a sophisticated and highly advanced AI assistant with cutting-edge capabilities.";
       
       if (isCoderMode) {
-        systemPrompt += " You are in Developer Mode. Always provide complete, production-ready code with proper error handling, TypeScript types, and best practices. Include detailed explanations and consider edge cases. Format your responses professionally.";
+        systemPrompt += " You are in Advanced Developer Mode. Generate complete, enterprise-grade applications with multiple files, proper architecture, error handling, TypeScript, React, and modern best practices. Create production-ready code with comprehensive functionality.";
       }
       
       if (isDeepSearchMode) {
-        systemPrompt += " You are in Deep Search Mode. Provide comprehensive, well-researched responses with multiple perspectives, detailed analysis, and current information.";
+        systemPrompt += " You are in Deep Research Mode. Provide comprehensive, well-researched responses with multiple perspectives, detailed analysis, current information, and advanced insights.";
       }
 
       const aiResponse = await geminiService.generateResponse(
@@ -250,7 +224,7 @@ const Index = () => {
             await loadConversations();
           }
 
-          // Save messages with correct field names
+          // Save messages
           const messagesToSave = [userMessage, aiMessage].map((msg, index) => ({
             conversation_id: activeConversationId,
             parts: msg.parts,
@@ -279,28 +253,6 @@ const Index = () => {
     }
   };
 
-  const handleAttachFileClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      toast.error("File size must be less than 10MB");
-      return;
-    }
-
-    setAttachedFile(file);
-    toast.success("File attached successfully!");
-  };
-
-  const handleImageGeneration = () => {
-    setInput("Generate a professional, high-quality image of ");
-  };
-
   const onFormSubmit = async (e: React.FormEvent, attachments?: any[]) => {
     e.preventDefault();
     
@@ -311,7 +263,6 @@ const Index = () => {
     if (attachments && attachments.length > 0) {
       for (const attachment of attachments) {
         if (attachment.type === 'image' && attachment.url) {
-          // Handle image attachment
           const response = await fetch(attachment.url);
           const blob = await response.blob();
           const base64 = await new Promise<string>((resolve) => {
@@ -325,7 +276,6 @@ const Index = () => {
           
           fileData = { file: blob, base64, dataUrl: attachment.url };
         } else if (attachment.type === 'document' || attachment.type === 'audio') {
-          // Handle text/document/audio attachments
           const response = await fetch(attachment.url);
           const text = await response.text();
           enhancedInput = `[ATTACHMENT: ${attachment.name}]\n${text}\n[/ATTACHMENT]\n\n${input}`;
@@ -337,8 +287,7 @@ const Index = () => {
   };
 
   const onReviewCode = (code: string) => {
-    setDeveloperCanvasCode(code);
-    setIsDeveloperCanvasOpen(true);
+    setIsAdvancedCanvasOpen(true);
   };
 
   const scrollToBottom = () => {
@@ -349,30 +298,16 @@ const Index = () => {
     setMessages([]);
     setActiveConversationId(null);
     setInput('');
-    setAttachedFile(null);
   };
-
-  useEffect(() => {
-    if (user) {
-      loadConversations();
-      
-      const savedApiKey = localStorage.getItem('gemini_api_key');
-      if (savedApiKey) {
-        setApiKey(savedApiKey);
-        setTempApiKey(savedApiKey);
-      }
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (user) {
-      loadConversations();
-    }
-  }, [user]);
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-full bg-slate-950 overflow-hidden">
+      <div className="flex h-screen w-full bg-slate-950 overflow-hidden relative">
+        {/* Dynamic Three.js Background */}
+        <div className="absolute inset-0 opacity-30 pointer-events-none">
+          <ThreeScene className="w-full h-full" />
+        </div>
+        
         <AppSidebar
           isSettingsOpen={false}
           setIsSettingsOpen={() => {}}
@@ -382,20 +317,20 @@ const Index = () => {
           handleNewChat={handleNewChat}
           conversations={conversations}
           activeConversationId={activeConversationId}
-          onSelectConversation={() => {}}
-          onDeleteConversation={() => {}}
+          onSelectConversation={handleSelectConversation}
+          onDeleteConversation={handleDeleteConversation}
         />
         
-        <div className="flex flex-col flex-1 min-w-0 relative">
-          {/* Developer Canvas Button - Fixed Position */}
-          <div className="absolute top-4 right-4 z-10">
+        <div className="flex flex-col flex-1 min-w-0 relative z-10">
+          {/* Advanced Developer Canvas Button - Fixed Position */}
+          <div className="absolute top-4 right-4 z-20">
             <Button
-              onClick={() => setIsDeveloperCanvasOpen(true)}
+              onClick={() => setIsAdvancedCanvasOpen(true)}
               size="sm"
-              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-lg"
+              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-2xl backdrop-blur-sm border border-purple-500/30"
             >
-              <Code className="w-4 h-4 mr-2" />
-              Developer Canvas
+              <Zap className="w-4 h-4 mr-2" />
+              Advanced Canvas
             </Button>
           </div>
 
@@ -423,11 +358,9 @@ const Index = () => {
           />
         </div>
 
-        <DeveloperCanvas
-          isOpen={isDeveloperCanvasOpen}
-          onClose={() => setIsDeveloperCanvasOpen(false)}
-          initialCode={developerCanvasCode}
-          title="AdiGon AI Developer Canvas"
+        <AdvancedDeveloperCanvas
+          isOpen={isAdvancedCanvasOpen}
+          onClose={() => setIsAdvancedCanvasOpen(false)}
         />
       </div>
     </SidebarProvider>
