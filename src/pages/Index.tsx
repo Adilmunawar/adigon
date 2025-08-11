@@ -486,21 +486,6 @@ Build a complete, functional application:`;
           activeConversationId={activeConversationId}
           onSelectConversation={handleSelectConversation}
           onDeleteConversation={handleDeleteConversation}
-          userProfile={userProfile}
-          onUpdateProfile={async (data: any) => {
-            const { error } = await supabase
-              .from('profiles')
-              .update(data)
-              .eq('id', user?.id);
-            
-            if (error) {
-              toast.error('Failed to update settings.');
-              console.error(error);
-            } else {
-              toast.success('Settings updated successfully!');
-              await refetchProfile();
-            }
-          }}
         />
         
         <div className="flex flex-col flex-1 min-w-0 bg-background">
