@@ -32,7 +32,7 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
-  const [conversations, setConversations<{id: string, title: string}[]>([]);
+  const [conversations, setConversations] = useState<{id: string, title: string}[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [apiKey, setApiKey] = useState('');
