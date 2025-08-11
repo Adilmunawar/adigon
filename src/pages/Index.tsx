@@ -1,29 +1,32 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/providers/AuthProvider';
 import { toast } from '@/components/ui/sonner';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { supabase } from '@/integrations/supabase/client';
-import { Code, Image, MessageSquare, Search, Sparkles, Zap } from 'lucide-react';
+import { Code, Image, MessageSquare, Search, Sparkles, Zap, Cpu } from 'lucide-react';
 import AppSidebar from '@/components/AppSidebar';
 import GeminiInspiredChatInterface from '@/components/GeminiInspiredChatInterface';
-import GeminiInspiredInputArea from '@/components/GeminiInspiredInputArea';
+import ProfessionalChatInput from '@/components/ProfessionalChatInput';
+import DeveloperCanvas from '@/components/DeveloperCanvas';
 import { Message } from '@/components/ChatMessage';
 import { useQuery } from '@tanstack/react-query';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { geminiService } from '@/services/geminiService';
+import { Button } from '@/components/ui/button';
 
 const loadingMessages = [
-  "Thinking deeply about your request...",
-  "Processing information...",
-  "Generating creative response...",
-  "Almost ready with your answer...",
-  "Crafting the perfect response...",
+  "Processing with advanced AI models...",
+  "Analyzing your request across multiple systems...",
+  "Generating optimized response...",
+  "Finalizing comprehensive answer...",
+  "Almost ready with your result...",
 ];
 
 const examplePrompts = [
-  { text: "Build a React component", icon: Code },
-  { text: "Generate an image", icon: Image },
-  { text: "Explain a concept", icon: MessageSquare },
-  { text: "Research a topic", icon: Search },
+  { text: "Build a React component with TypeScript", icon: Code },
+  { text: "Create a professional dashboard", icon: Cpu },
+  { text: "Generate an artistic image", icon: Image },
+  { text: "Explain complex concepts simply", icon: MessageSquare },
+  { text: "Research latest technologies", icon: Search },
 ];
 
 const Index = () => {
@@ -36,11 +39,10 @@ const Index = () => {
   const [conversations, setConversations] = useState<{id: string, title: string}[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
-  const [apiKey, setApiKey] = useState('');
-  const [tempApiKey, setTempApiKey] = useState('');
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCoderMode, setIsCoderMode] = useState(false);
   const [isDeepSearchMode, setIsDeepSearchMode] = useState(false);
+  const [isDeveloperCanvasOpen, setIsDeveloperCanvasOpen] = useState(false);
+  const [developerCanvasCode, setDeveloperCanvasCode] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -89,14 +91,98 @@ const Index = () => {
     }
   }, [user]);
 
-  const handleSendMessage = async (messageText: string, fileData?: any) => {
-    if ((!messageText.trim() && !fileData) || isLoading) return;
+  const [apiKey, setApiKey] = useState('');
+  const [tempApiKey, setTempApiKey] = useState('');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-    if (!apiKey) {
-      toast.error("Please set your Gemini API key in the settings first.");
-      setIsSettingsOpen(true);
+  const handleSaveApiKey = () => {
+    if (tempApiKey.trim()) {
+      setApiKey(tempApiKey);
+      localStorage.setItem('gemini_api_key', tempApiKey);
+      toast.success("API key saved successfully!");
+      setIsSettingsOpen(false);
+    } else {
+      toast.error("Please enter a valid API key");
+    }
+  };
+
+  const handleSelectConversation = async (conversationId: string) => {
+    setActiveConversationId(conversationId);
+    
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true });
+    
+    if (error) {
+      console.error('Error loading messages:', error);
+      toast.error("Failed to load conversation");
       return;
     }
+    
+    const loadedMessages = data.map((msg: any) => ({
+      role: msg.role,
+      parts: msg.parts,
+      ...(msg.image_url && { imageUrl: msg.image_url })
+    }));
+    setMessages(loadedMessages);
+  };
+
+  const handleDeleteConversation = async (conversationId: string) => {
+    const { error } = await supabase
+      .from('conversations')
+      .delete()
+      .eq('id', conversationId);
+    
+    if (error) {
+      console.error('Error deleting conversation:', error);
+      toast.error("Failed to delete conversation");
+      return;
+    }
+    
+    if (activeConversationId === conversationId) {
+      setActiveConversationId(null);
+      setMessages([]);
+    }
+    
+    await loadConversations();
+    toast.success("Conversation deleted");
+  };
+
+  const handleVoiceTranscription = (text: string) => {
+    setInput(prev => prev + text);
+  };
+
+  // Handle scroll detection for scroll button
+  useEffect(() => {
+    const handleScroll = (e: Event) => {
+      const target = e.target as HTMLElement;
+      if (target) {
+        const { scrollTop, scrollHeight, clientHeight } = target;
+        const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+        setShowScrollButton(!isNearBottom && messages.length > 2);
+      }
+    };
+
+    const chatContainer = document.querySelector('main');
+    if (chatContainer) {
+      chatContainer.addEventListener('scroll', handleScroll);
+      return () => chatContainer.removeEventListener('scroll', handleScroll);
+    }
+  }, [messages.length]);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [messages.length]);
+
+  const handleSendMessage = async (messageText: string, fileData?: any) => {
+    if ((!messageText.trim() && !fileData) || isLoading) return;
 
     const currentMessages = [...messages];
     const userMessage: Message = {
@@ -119,42 +205,25 @@ const Index = () => {
     }, 2000);
 
     try {
-      const genAI = new GoogleGenerativeAI(apiKey);
-      
-      let systemPrompt = "You are AdiGon AI, a helpful and creative assistant.";
+      let systemPrompt = "You are AdiGon AI, a sophisticated and helpful AI assistant with advanced capabilities.";
       
       if (isCoderMode) {
-        systemPrompt += " You are in Developer Mode. Always provide complete, production-ready code with proper error handling, TypeScript types, and best practices. Include detailed explanations and consider edge cases.";
+        systemPrompt += " You are in Developer Mode. Always provide complete, production-ready code with proper error handling, TypeScript types, and best practices. Include detailed explanations and consider edge cases. Format your responses professionally.";
       }
       
       if (isDeepSearchMode) {
-        systemPrompt += " You are in Deep Search Mode. Provide comprehensive, well-researched responses with multiple perspectives and detailed analysis.";
+        systemPrompt += " You are in Deep Search Mode. Provide comprehensive, well-researched responses with multiple perspectives, detailed analysis, and current information.";
       }
 
-      const model = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash",
-        systemInstruction: systemPrompt
-      });
-
-      const prompt = messageText;
-      let result;
-
-      if (fileData?.file) {
-        const imagePart = {
-          inlineData: {
-            data: fileData.base64,
-            mimeType: fileData.file.type
-          }
-        };
-        result = await model.generateContent([prompt, imagePart]);
-      } else {
-        result = await model.generateContent(prompt);
-      }
+      const aiResponse = await geminiService.generateResponse(
+        messageText,
+        systemPrompt,
+        fileData
+      );
 
       clearInterval(loadingInterval);
       setIsLoading(false);
 
-      const aiResponse = result.response.text();
       const aiMessage: Message = {
         role: "model" as const,
         parts: [{ text: aiResponse }]
@@ -205,13 +274,7 @@ const Index = () => {
       setIsLoading(false);
       console.error('Error:', error);
       
-      if (error instanceof Error && error.message.includes('API_KEY_INVALID')) {
-        toast.error("Invalid API key. Please check your Gemini API key.");
-        setIsSettingsOpen(true);
-      } else {
-        toast.error("Sorry, I encountered an error. Please try again.");
-      }
-      
+      toast.error("I encountered an error processing your request. Our advanced AI system will retry automatically.");
       setMessages(currentMessages);
     }
   };
@@ -235,7 +298,7 @@ const Index = () => {
   };
 
   const handleImageGeneration = () => {
-    setInput("Generate a creative image of ");
+    setInput("Generate a professional, high-quality image of ");
   };
 
   const onFormSubmit = async (e: React.FormEvent) => {
@@ -267,55 +330,12 @@ const Index = () => {
   };
 
   const onReviewCode = (code: string) => {
-    setInput(`Please review and explain this code:\n\n\`\`\`\n${code}\n\`\`\``);
+    setDeveloperCanvasCode(code);
+    setIsDeveloperCanvasOpen(true);
   };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const handleSelectConversation = async (conversationId: string) => {
-    setActiveConversationId(conversationId);
-    
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true });
-    
-    if (error) {
-      console.error('Error loading messages:', error);
-      toast.error("Failed to load conversation");
-      return;
-    }
-    
-    const loadedMessages = data.map((msg: any) => ({
-      role: msg.role,
-      parts: msg.parts,
-      ...(msg.image_url && { imageUrl: msg.image_url })
-    }));
-    setMessages(loadedMessages);
-  };
-
-  const handleDeleteConversation = async (conversationId: string) => {
-    const { error } = await supabase
-      .from('conversations')
-      .delete()
-      .eq('id', conversationId);
-    
-    if (error) {
-      console.error('Error deleting conversation:', error);
-      toast.error("Failed to delete conversation");
-      return;
-    }
-    
-    if (activeConversationId === conversationId) {
-      setActiveConversationId(null);
-      setMessages([]);
-    }
-    
-    await loadConversations();
-    toast.success("Conversation deleted");
   };
 
   const handleNewChat = async () => {
@@ -325,65 +345,53 @@ const Index = () => {
     setAttachedFile(null);
   };
 
-  const handleSaveApiKey = () => {
-    if (tempApiKey.trim()) {
-      setApiKey(tempApiKey);
-      localStorage.setItem('gemini_api_key', tempApiKey);
-      toast.success("API key saved successfully!");
-      setIsSettingsOpen(false);
-    } else {
-      toast.error("Please enter a valid API key");
-    }
-  };
-
-  const handleVoiceTranscription = (text: string) => {
-    setInput(prev => prev + text);
-  };
-
-  // Handle scroll detection for scroll button
   useEffect(() => {
-    const handleScroll = (e: Event) => {
-      const target = e.target as HTMLElement;
-      if (target) {
-        const { scrollTop, scrollHeight, clientHeight } = target;
-        const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
-        setShowScrollButton(!isNearBottom && messages.length > 2);
+    if (user) {
+      loadConversations();
+      
+      const savedApiKey = localStorage.getItem('gemini_api_key');
+      if (savedApiKey) {
+        setApiKey(savedApiKey);
+        setTempApiKey(savedApiKey);
       }
-    };
-
-    const chatContainer = document.querySelector('main');
-    if (chatContainer) {
-      chatContainer.addEventListener('scroll', handleScroll);
-      return () => chatContainer.removeEventListener('scroll', handleScroll);
     }
-  }, [messages.length]);
+  }, [user]);
 
-  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (messages.length > 0) {
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+    if (user) {
+      loadConversations();
     }
-  }, [messages.length]);
+  }, [user]);
 
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full bg-slate-950 overflow-hidden">
         <AppSidebar
-          isSettingsOpen={isSettingsOpen}
-          setIsSettingsOpen={setIsSettingsOpen}
-          tempApiKey={tempApiKey}
-          setTempApiKey={setTempApiKey}
-          handleSaveApiKey={handleSaveApiKey}
+          isSettingsOpen={false}
+          setIsSettingsOpen={() => {}}
+          tempApiKey=""
+          setTempApiKey={() => {}}
+          handleSaveApiKey={() => {}}
           handleNewChat={handleNewChat}
           conversations={conversations}
           activeConversationId={activeConversationId}
-          onSelectConversation={handleSelectConversation}
-          onDeleteConversation={handleDeleteConversation}
+          onSelectConversation={() => {}}
+          onDeleteConversation={() => {}}
         />
         
-        <div className="flex flex-col flex-1 min-w-0">
+        <div className="flex flex-col flex-1 min-w-0 relative">
+          {/* Developer Canvas Button - Fixed Position */}
+          <div className="absolute top-4 right-4 z-10">
+            <Button
+              onClick={() => setIsDeveloperCanvasOpen(true)}
+              size="sm"
+              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-lg"
+            >
+              <Code className="w-4 h-4 mr-2" />
+              Developer Canvas
+            </Button>
+          </div>
+
           <GeminiInspiredChatInterface
             messages={messages}
             isLoading={isLoading}
@@ -396,25 +404,42 @@ const Index = () => {
             scrollToBottom={scrollToBottom}
           />
           
-          <GeminiInspiredInputArea
+          <ProfessionalChatInput
             input={input}
             setInput={setInput}
             attachedFile={attachedFile}
             setAttachedFile={setAttachedFile}
             isLoading={isLoading}
-            user={user}
             isCoderMode={isCoderMode}
             setIsCoderMode={setIsCoderMode}
             isDeepSearchMode={isDeepSearchMode}
             setIsDeepSearchMode={setIsDeepSearchMode}
-            handleAttachFileClick={handleAttachFileClick}
-            handleFileSelect={handleFileSelect}
-            handleImageGeneration={handleImageGeneration}
-            onFormSubmit={onFormSubmit}
+            onSubmit={onFormSubmit}
+            onAttachFile={handleAttachFileClick}
+            onImageGeneration={handleImageGeneration}
+            onVoiceInput={() => {
+              if ('webkitSpeechRecognition' in window) {
+                const recognition = new (window as any).webkitSpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+                recognition.onresult = (event: any) => {
+                  const transcript = event.results[0][0].transcript;
+                  handleVoiceTranscription(transcript);
+                };
+                recognition.start();
+              }
+            }}
             fileInputRef={fileInputRef}
-            onVoiceTranscription={handleVoiceTranscription}
           />
         </div>
+
+        <DeveloperCanvas
+          isOpen={isDeveloperCanvasOpen}
+          onClose={() => setIsDeveloperCanvasOpen(false)}
+          initialCode={developerCanvasCode}
+          title="AdiGon AI Developer Canvas"
+        />
       </div>
     </SidebarProvider>
   );
