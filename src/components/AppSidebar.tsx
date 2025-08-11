@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import { useState } from "react"
 import {
@@ -27,7 +28,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import {
@@ -88,7 +88,7 @@ export default function AppSidebar({
 
   return (
     <>
-      <Sidebar variant="sidebar" className="bg-slate-900 border-slate-800">
+      <Sidebar className="bg-slate-900 border-slate-800">
         <SidebarHeader className="border-b border-slate-800 p-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
@@ -209,7 +209,6 @@ export default function AppSidebar({
             </div>
           )}
         </SidebarFooter>
-        <SidebarRail />
       </Sidebar>
 
       {/* API Settings Sheet */}

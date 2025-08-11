@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/providers/AuthProvider';
 import { toast } from '@/components/ui/sonner';
@@ -180,12 +181,13 @@ const Index = () => {
             await loadConversations();
           }
 
-          // Save messages
+          // Save messages with correct field names
           const messagesToSave = [userMessage, aiMessage].map((msg, index) => ({
             conversation_id: activeConversationId,
-            content: JSON.stringify(msg),
+            parts: msg.parts,
             role: msg.role,
-            created_at: new Date(Date.now() + index).toISOString()
+            created_at: new Date(Date.now() + index).toISOString(),
+            ...(msg.imageUrl && { image_url: msg.imageUrl })
           }));
 
           const { error: msgError } = await supabase
@@ -287,7 +289,11 @@ const Index = () => {
       return;
     }
     
-    const loadedMessages = data.map((msg: any) => JSON.parse(msg.content));
+    const loadedMessages = data.map((msg: any) => ({
+      role: msg.role,
+      parts: msg.parts,
+      ...(msg.image_url && { imageUrl: msg.image_url })
+    }));
     setMessages(loadedMessages);
   };
 
