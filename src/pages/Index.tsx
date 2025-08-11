@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Code, Image, MessageSquare, Search, Sparkles, Zap, Cpu } from 'lucide-react';
 import AppSidebar from '@/components/AppSidebar';
 import GeminiInspiredChatInterface from '@/components/GeminiInspiredChatInterface';
-import ProfessionalChatInput from '@/components/ProfessionalChatInput';
+import EnhancedChatInput from '@/components/EnhancedChatInput';
 import DeveloperCanvas from '@/components/DeveloperCanvas';
 import { Message } from '@/components/ChatMessage';
 import { useQuery } from '@tanstack/react-query';
@@ -301,32 +301,39 @@ const Index = () => {
     setInput("Generate a professional, high-quality image of ");
   };
 
-  const onFormSubmit = async (e: React.FormEvent) => {
+  const onFormSubmit = async (e: React.FormEvent, attachments?: any[]) => {
     e.preventDefault();
     
     let fileData = null;
-    if (attachedFile) {
-      if (attachedFile.type.startsWith('image/')) {
-        const base64 = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const result = reader.result as string;
-            resolve(result.split(',')[1]);
-          };
-          reader.readAsDataURL(attachedFile);
-        });
-        
-        const dataUrl = URL.createObjectURL(attachedFile);
-        fileData = { file: attachedFile, base64, dataUrl };
-      } else {
-        const text = await attachedFile.text();
-        const enhancedInput = `[ATTACHMENT: ${attachedFile.name}]\n${text}\n[/ATTACHMENT]\n\n${input}`;
-        await handleSendMessage(enhancedInput);
-        return;
+    let enhancedInput = input;
+    
+    // Process attachments
+    if (attachments && attachments.length > 0) {
+      for (const attachment of attachments) {
+        if (attachment.type === 'image' && attachment.url) {
+          // Handle image attachment
+          const response = await fetch(attachment.url);
+          const blob = await response.blob();
+          const base64 = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const result = reader.result as string;
+              resolve(result.split(',')[1]);
+            };
+            reader.readAsDataURL(blob);
+          });
+          
+          fileData = { file: blob, base64, dataUrl: attachment.url };
+        } else if (attachment.type === 'document' || attachment.type === 'audio') {
+          // Handle text/document/audio attachments
+          const response = await fetch(attachment.url);
+          const text = await response.text();
+          enhancedInput = `[ATTACHMENT: ${attachment.name}]\n${text}\n[/ATTACHMENT]\n\n${input}`;
+        }
       }
     }
     
-    await handleSendMessage(input, fileData);
+    await handleSendMessage(enhancedInput, fileData);
   };
 
   const onReviewCode = (code: string) => {
@@ -404,33 +411,15 @@ const Index = () => {
             scrollToBottom={scrollToBottom}
           />
           
-          <ProfessionalChatInput
+          <EnhancedChatInput
             input={input}
             setInput={setInput}
-            attachedFile={attachedFile}
-            setAttachedFile={setAttachedFile}
             isLoading={isLoading}
             isCoderMode={isCoderMode}
             setIsCoderMode={setIsCoderMode}
             isDeepSearchMode={isDeepSearchMode}
             setIsDeepSearchMode={setIsDeepSearchMode}
             onSubmit={onFormSubmit}
-            onAttachFile={handleAttachFileClick}
-            onImageGeneration={handleImageGeneration}
-            onVoiceInput={() => {
-              if ('webkitSpeechRecognition' in window) {
-                const recognition = new (window as any).webkitSpeechRecognition();
-                recognition.continuous = false;
-                recognition.interimResults = false;
-                recognition.lang = 'en-US';
-                recognition.onresult = (event: any) => {
-                  const transcript = event.results[0][0].transcript;
-                  handleVoiceTranscription(transcript);
-                };
-                recognition.start();
-              }
-            }}
-            fileInputRef={fileInputRef}
           />
         </div>
 
