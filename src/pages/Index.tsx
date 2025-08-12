@@ -14,7 +14,6 @@ import { useQuery } from '@tanstack/react-query';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { geminiService } from '@/services/geminiService';
 import { Button } from '@/components/ui/button';
-
 const loadingMessages = [
   "Processing with advanced AI models...",
   "Analyzing your request across multiple systems...",
@@ -23,7 +22,6 @@ const loadingMessages = [
   "Finalizing comprehensive answer...",
   "Almost ready with your result...",
 ];
-
 const examplePrompts = [
   { text: "Build a complete Instagram clone with authentication", icon: Code },
   { text: "Create a professional dashboard with analytics", icon: Cpu },
@@ -31,7 +29,6 @@ const examplePrompts = [
   { text: "Generate a complex e-commerce platform", icon: Brain },
   { text: "Research latest AI development trends", icon: Search },
 ];
-
 const Index = () => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -45,7 +42,6 @@ const Index = () => {
   const [isDeepSearchMode, setIsDeepSearchMode] = useState(false);
   const [isAdvancedCanvasOpen, setIsAdvancedCanvasOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
   const { data: userProfile } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async () => {
@@ -55,16 +51,13 @@ const Index = () => {
         .select('*')
         .eq('id', user.id)
         .single();
-      
       if (error) throw error;
       return data;
     },
     enabled: !!user?.id,
   });
-
   const loadConversations = async () => {
     if (!user?.id) return;
-    
     const { data, error } = await supabase
       .from('conversations')
       .select('id, title, created_at')
