@@ -12,7 +12,6 @@ import {
   User,
   Zap
 } from "lucide-react"
-
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -76,7 +75,6 @@ export default function AppSidebar({
 }: AppSidebarProps) {
   const { user, signOut } = useAuth()
   const [isAdvancedSettingsOpen, setIsAdvancedSettingsOpen] = useState(false)
-
   const handleSignOut = async () => {
     try {
       await signOut()
@@ -85,7 +83,6 @@ export default function AppSidebar({
       toast.error("Error signing out")
     }
   }
-
   return (
     <>
       <Sidebar className="bg-slate-900 border-slate-800">
@@ -159,7 +156,6 @@ export default function AppSidebar({
             </SidebarGroup>
           )}
         </SidebarContent>
-
         <SidebarFooter className="border-t border-slate-800 p-4">
           <SidebarMenu>
             <SidebarMenuItem>
@@ -192,7 +188,6 @@ export default function AppSidebar({
               </SidebarMenuItem>
             )}
           </SidebarMenu>
-          
           {user && (
             <div className="mt-4 p-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
               <div className="flex items-center gap-3">
@@ -210,7 +205,6 @@ export default function AppSidebar({
           )}
         </SidebarFooter>
       </Sidebar>
-
       {/* API Settings Sheet */}
       <Sheet open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
         <SheetContent side="left" className="w-96 bg-slate-900 border-slate-800">
@@ -223,7 +217,6 @@ export default function AppSidebar({
               Configure your Gemini API key to start chatting
             </SheetDescription>
           </SheetHeader>
-          
           <div className="space-y-6 mt-6">
             <div className="space-y-3">
               <Label htmlFor="api-key" className="text-white font-medium">
@@ -249,7 +242,6 @@ export default function AppSidebar({
                 </a>
               </p>
             </div>
-            
             <Button 
               onClick={handleSaveApiKey} 
               className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium"
@@ -260,7 +252,6 @@ export default function AppSidebar({
           </div>
         </SheetContent>
       </Sheet>
-
       {/* Advanced Settings Dialog */}
       <Dialog open={isAdvancedSettingsOpen} onOpenChange={setIsAdvancedSettingsOpen}>
         <DialogContent className="max-w-4xl w-full bg-slate-900 border-slate-800 text-white max-h-[90vh] overflow-hidden p-0">
@@ -273,7 +264,6 @@ export default function AppSidebar({
               Customize your AI experience and manage your preferences
             </DialogDescription>
           </DialogHeader>
-          
           <div className="overflow-y-auto flex-1">
             <AdvancedSettings />
           </div>
