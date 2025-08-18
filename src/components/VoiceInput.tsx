@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff } from 'lucide-react';
+import { Mic, MicOff, Square } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 
 interface VoiceInputProps {
@@ -11,46 +11,52 @@ interface VoiceInputProps {
 
 const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, disabled = false }) => {
   const [isRecording, setIsRecording] = useState(false);
+  const [recognition, setRecognition] = useState<any>(null);
 
   const handleVoiceInput = async () => {
     if (disabled) return;
 
     if (isRecording) {
       // Stop recording
+      if (recognition) {
+        recognition.stop();
+      }
       setIsRecording(false);
-      toast.info('Voice recording stopped');
       return;
     }
 
     // Check if browser supports speech recognition
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      toast.error('Speech recognition is not supported in this browser');
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      toast.error('Speech recognition is not supported in this browser. Please try Chrome or Edge.');
       return;
     }
 
     try {
-      setIsRecording(true);
+      // Request microphone permission first
+      await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      // Create speech recognition instance
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
+      const recognitionInstance = new SpeechRecognition();
       
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = 'en-US';
+      recognitionInstance.continuous = false;
+      recognitionInstance.interimResults = false;
+      recognitionInstance.lang = 'en-US';
+      recognitionInstance.maxAlternatives = 1;
 
-      recognition.onstart = () => {
-        toast.info('Listening... Speak now');
+      recognitionInstance.onstart = () => {
+        setIsRecording(true);
+        toast.info('🎤 Listening... Speak now');
       };
 
-      recognition.onresult = (event: any) => {
+      recognitionInstance.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
+        console.log('Voice transcript:', transcript);
         onTranscription(transcript);
-        toast.success('Voice input captured successfully');
-        setIsRecording(false);
+        toast.success('✅ Voice input captured successfully');
       };
 
-      recognition.onerror = (event: any) => {
+      recognitionInstance.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
         setIsRecording(false);
         
@@ -62,24 +68,38 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, disabled = fal
             toast.error('Network error. Please check your connection.');
             break;
           case 'not-allowed':
-            toast.error('Microphone access denied. Please allow microphone access.');
+            toast.error('Microphone access denied. Please allow microphone access and try again.');
+            break;
+          case 'audio-capture':
+            toast.error('No microphone found. Please connect a microphone.');
+            break;
+          case 'service-not-allowed':
+            toast.error('Speech recognition service not allowed.');
             break;
           default:
-            toast.error('Speech recognition failed. Please try again.');
+            toast.error(`Speech recognition failed: ${event.error}`);
         }
       };
 
-      recognition.onend = () => {
+      recognitionInstance.onend = () => {
         setIsRecording(false);
+        console.log('Speech recognition ended');
       };
 
-      // Start recognition
-      recognition.start();
+      setRecognition(recognitionInstance);
+      recognitionInstance.start();
 
     } catch (error) {
       console.error('Voice input error:', error);
       setIsRecording(false);
-      toast.error('Failed to start voice input');
+      
+      if (error instanceof DOMException && error.name === 'NotAllowedError') {
+        toast.error('Microphone access denied. Please allow microphone access in your browser settings.');
+      } else if (error instanceof DOMException && error.name === 'NotFoundError') {
+        toast.error('No microphone found. Please connect a microphone.');
+      } else {
+        toast.error('Failed to start voice input. Please try again.');
+      }
     }
   };
 
@@ -92,12 +112,13 @@ const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscription, disabled = fal
       disabled={disabled}
       className={`h-10 w-10 rounded-full transition-all duration-200 hover:scale-105 ${
         isRecording 
-          ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20 animate-pulse' 
+          ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30 animate-pulse border-2 border-red-500/50' 
           : 'hover:bg-primary/10 hover:text-primary'
       }`}
+      title={isRecording ? 'Stop recording' : 'Start voice input'}
     >
       {isRecording ? (
-        <MicOff className="w-5 h-5" />
+        <Square className="w-4 h-4 fill-current" />
       ) : (
         <Mic className="w-5 h-5" />
       )}

@@ -1,10 +1,11 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/providers/AuthProvider';
 import { toast } from '@/components/ui/sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Code, MessageSquare, Search, Sparkles, Zap, Cpu, Brain } from 'lucide-react';
 import AppSidebar from '@/components/AppSidebar';
-import GeminiInspiredChatInterface from '@/components/GeminiInspiredChatInterface';
+import EnhancedChatInterface from '@/components/EnhancedChatInterface';
 import EnhancedChatInput from '@/components/EnhancedChatInput';
 import AdvancedDeveloperCanvas from '@/components/AdvancedDeveloperCanvas';
 import ThreeScene from '@/components/ThreeScene';
@@ -13,6 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { geminiService } from '@/services/geminiService';
 import { Button } from '@/components/ui/button';
+import { FileUploadResult } from '@/services/uploadService';
 
 const loadingMessages = [
   "Processing with advanced AI models...",
@@ -62,6 +64,8 @@ const Index = () => {
 
   const loadConversations = async () => {
     if (!user?.id) return;
+    console.log('Loading conversations for user:', user.id);
+    
     const { data, error } = await supabase
       .from('conversations')
       .select('id, title, created_at')
@@ -70,9 +74,11 @@ const Index = () => {
     
     if (error) {
       console.error('Error loading conversations:', error);
+      toast.error("Failed to load conversations");
       return;
     }
     
+    console.log('Loaded conversations:', data);
     setConversations(data || []);
   };
 
@@ -83,47 +89,64 @@ const Index = () => {
   }, [user]);
 
   const handleSelectConversation = async (conversationId: string) => {
+    console.log('Selecting conversation:', conversationId);
     setActiveConversationId(conversationId);
+    setIsLoading(true);
     
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true });
-    
-    if (error) {
-      console.error('Error loading messages:', error);
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+      
+      if (error) {
+        console.error('Error loading messages:', error);
+        toast.error("Failed to load conversation");
+        return;
+      }
+      
+      console.log('Loaded messages:', data);
+      const loadedMessages = data.map((msg: any) => ({
+        role: msg.role,
+        parts: msg.parts,
+        ...(msg.image_url && { imageUrl: msg.image_url })
+      }));
+      setMessages(loadedMessages);
+      toast.success("Conversation loaded successfully");
+    } catch (error) {
+      console.error('Error in handleSelectConversation:', error);
       toast.error("Failed to load conversation");
-      return;
+    } finally {
+      setIsLoading(false);
     }
-    
-    const loadedMessages = data.map((msg: any) => ({
-      role: msg.role,
-      parts: msg.parts,
-      ...(msg.image_url && { imageUrl: msg.image_url })
-    }));
-    setMessages(loadedMessages);
   };
 
   const handleDeleteConversation = async (conversationId: string) => {
-    const { error } = await supabase
-      .from('conversations')
-      .delete()
-      .eq('id', conversationId);
-    
-    if (error) {
-      console.error('Error deleting conversation:', error);
+    try {
+      const { error } = await supabase
+        .from('conversations')
+        .delete()
+        .eq('id', conversationId)
+        .eq('user_id', user?.id);
+      
+      if (error) {
+        console.error('Error deleting conversation:', error);
+        toast.error("Failed to delete conversation");
+        return;
+      }
+      
+      if (activeConversationId === conversationId) {
+        setActiveConversationId(null);
+        setMessages([]);
+      }
+      
+      await loadConversations();
+      toast.success("Conversation deleted");
+    } catch (error) {
+      console.error('Error in handleDeleteConversation:', error);
       toast.error("Failed to delete conversation");
-      return;
     }
-    
-    if (activeConversationId === conversationId) {
-      setActiveConversationId(null);
-      setMessages([]);
-    }
-    
-    await loadConversations();
-    toast.success("Conversation deleted");
   };
 
   // Handle scroll detection for scroll button
@@ -153,14 +176,28 @@ const Index = () => {
     }
   }, [messages.length]);
 
-  const handleSendMessage = async (messageText: string, fileData?: any) => {
-    if ((!messageText.trim() && !fileData) || isLoading) return;
+  const handleSendMessage = async (messageText: string, attachments?: FileUploadResult[]) => {
+    if ((!messageText.trim() && (!attachments || attachments.length === 0)) || isLoading) return;
 
     const currentMessages = [...messages];
+    let enhancedMessage = messageText;
+    let imageUrl = null;
+
+    // Process attachments
+    if (attachments && attachments.length > 0) {
+      for (const attachment of attachments) {
+        if (attachment.type === 'image' && attachment.url) {
+          imageUrl = attachment.url;
+        } else if (attachment.type === 'document' || attachment.type === 'audio') {
+          enhancedMessage = `[ATTACHMENT: ${attachment.name}]\n${enhancedMessage}`;
+        }
+      }
+    }
+
     const userMessage: Message = {
       role: "user" as const,
-      parts: [{ text: messageText }],
-      ...(fileData && { imageUrl: fileData.dataUrl })
+      parts: [{ text: enhancedMessage }],
+      ...(imageUrl && { imageUrl })
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -186,8 +223,23 @@ const Index = () => {
         systemPrompt += " You are in Deep Research Mode. Provide comprehensive, well-researched responses with multiple perspectives, detailed analysis, current information, and advanced insights.";
       }
 
+      let fileData = null;
+      if (imageUrl) {
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        const base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            resolve(result.split(',')[1]);
+          };
+          reader.readAsDataURL(blob);
+        });
+        fileData = { file: blob, base64, dataUrl: imageUrl };
+      }
+
       const aiResponse = await geminiService.generateResponse(
-        messageText,
+        enhancedMessage,
         systemPrompt,
         fileData
       );
@@ -205,7 +257,9 @@ const Index = () => {
       // Save conversation if user is logged in
       if (user?.id) {
         try {
-          if (!activeConversationId) {
+          let conversationId = activeConversationId;
+          
+          if (!conversationId) {
             const conversationTitle = messageText.slice(0, 50) + (messageText.length > 50 ? '...' : '');
             const { data: newConversation, error: convError } = await supabase
               .from('conversations')
@@ -217,13 +271,14 @@ const Index = () => {
               .single();
 
             if (convError) throw convError;
-            setActiveConversationId(newConversation.id);
+            conversationId = newConversation.id;
+            setActiveConversationId(conversationId);
             await loadConversations();
           }
 
           // Save messages
           const messagesToSave = [userMessage, aiMessage].map((msg, index) => ({
-            conversation_id: activeConversationId,
+            conversation_id: conversationId,
             parts: msg.parts,
             role: msg.role,
             created_at: new Date(Date.now() + index).toISOString(),
@@ -237,6 +292,7 @@ const Index = () => {
           if (msgError) throw msgError;
         } catch (error) {
           console.error('Error saving conversation:', error);
+          toast.error("Failed to save conversation");
         }
       }
 
@@ -250,37 +306,9 @@ const Index = () => {
     }
   };
 
-  const onFormSubmit = async (e: React.FormEvent, attachments?: any[]) => {
+  const onFormSubmit = async (e: React.FormEvent, attachments?: FileUploadResult[]) => {
     e.preventDefault();
-    
-    let fileData = null;
-    let enhancedInput = input;
-    
-    // Process attachments
-    if (attachments && attachments.length > 0) {
-      for (const attachment of attachments) {
-        if (attachment.type === 'image' && attachment.url) {
-          const response = await fetch(attachment.url);
-          const blob = await response.blob();
-          const base64 = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-              const result = reader.result as string;
-              resolve(result.split(',')[1]);
-            };
-            reader.readAsDataURL(blob);
-          });
-          
-          fileData = { file: blob, base64, dataUrl: attachment.url };
-        } else if (attachment.type === 'document' || attachment.type === 'audio') {
-          const response = await fetch(attachment.url);
-          const text = await response.text();
-          enhancedInput = `[ATTACHMENT: ${attachment.name}]\n${text}\n[/ATTACHMENT]\n\n${input}`;
-        }
-      }
-    }
-    
-    await handleSendMessage(enhancedInput, fileData);
+    await handleSendMessage(input, attachments);
   };
 
   const onReviewCode = (code: string) => {
@@ -300,12 +328,12 @@ const Index = () => {
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full bg-slate-950 overflow-hidden relative">
-        {/* Three.js Background - Fixed z-index and pointer-events */}
+        {/* Three.js Background */}
         <div className="fixed inset-0 opacity-30 pointer-events-none z-0">
           <ThreeScene className="w-full h-full" />
         </div>
         
-        {/* Sidebar - Higher z-index to ensure interactivity */}
+        {/* Sidebar */}
         <div className="relative z-30">
           <AppSidebar
             isSettingsOpen={false}
@@ -321,9 +349,9 @@ const Index = () => {
           />
         </div>
         
-        {/* Main Content Area - Higher z-index */}
+        {/* Main Content Area */}
         <div className="flex flex-col flex-1 min-w-0 relative z-20">
-          {/* Advanced Developer Canvas Button - Fixed Position */}
+          {/* Advanced Developer Canvas Button */}
           <div className="absolute top-4 right-4 z-40">
             <Button
               onClick={() => setIsAdvancedCanvasOpen(true)}
@@ -335,7 +363,7 @@ const Index = () => {
             </Button>
           </div>
 
-          <GeminiInspiredChatInterface
+          <EnhancedChatInterface
             messages={messages}
             isLoading={isLoading}
             loadingMessage={loadingMessage}
@@ -359,7 +387,7 @@ const Index = () => {
           />
         </div>
 
-        {/* Advanced Developer Canvas - Highest z-index */}
+        {/* Advanced Developer Canvas */}
         <div className="relative z-50">
           <AdvancedDeveloperCanvas
             isOpen={isAdvancedCanvasOpen}
