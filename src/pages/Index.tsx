@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/providers/AuthProvider';
 import { toast } from '@/components/ui/sonner';
@@ -14,6 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { geminiService } from '@/services/geminiService';
 import { Button } from '@/components/ui/button';
+
 const loadingMessages = [
   "Processing with advanced AI models...",
   "Analyzing your request across multiple systems...",
@@ -22,6 +22,7 @@ const loadingMessages = [
   "Finalizing comprehensive answer...",
   "Almost ready with your result...",
 ];
+
 const examplePrompts = [
   { text: "Build a complete Instagram clone with authentication", icon: Code },
   { text: "Create a professional dashboard with analytics", icon: Cpu },
@@ -29,6 +30,7 @@ const examplePrompts = [
   { text: "Generate a complex e-commerce platform", icon: Brain },
   { text: "Research latest AI development trends", icon: Search },
 ];
+
 const Index = () => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -42,6 +44,7 @@ const Index = () => {
   const [isDeepSearchMode, setIsDeepSearchMode] = useState(false);
   const [isAdvancedCanvasOpen, setIsAdvancedCanvasOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
   const { data: userProfile } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async () => {
@@ -56,6 +59,7 @@ const Index = () => {
     },
     enabled: !!user?.id,
   });
+
   const loadConversations = async () => {
     if (!user?.id) return;
     const { data, error } = await supabase
@@ -296,27 +300,31 @@ const Index = () => {
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full bg-slate-950 overflow-hidden relative">
-        {/* Dynamic Three.js Background */}
-        <div className="absolute inset-0 opacity-30 pointer-events-none">
+        {/* Three.js Background - Fixed z-index and pointer-events */}
+        <div className="fixed inset-0 opacity-30 pointer-events-none z-0">
           <ThreeScene className="w-full h-full" />
         </div>
         
-        <AppSidebar
-          isSettingsOpen={false}
-          setIsSettingsOpen={() => {}}
-          tempApiKey=""
-          setTempApiKey={() => {}}
-          handleSaveApiKey={() => {}}
-          handleNewChat={handleNewChat}
-          conversations={conversations}
-          activeConversationId={activeConversationId}
-          onSelectConversation={handleSelectConversation}
-          onDeleteConversation={handleDeleteConversation}
-        />
+        {/* Sidebar - Higher z-index to ensure interactivity */}
+        <div className="relative z-30">
+          <AppSidebar
+            isSettingsOpen={false}
+            setIsSettingsOpen={() => {}}
+            tempApiKey=""
+            setTempApiKey={() => {}}
+            handleSaveApiKey={() => {}}
+            handleNewChat={handleNewChat}
+            conversations={conversations}
+            activeConversationId={activeConversationId}
+            onSelectConversation={handleSelectConversation}
+            onDeleteConversation={handleDeleteConversation}
+          />
+        </div>
         
-        <div className="flex flex-col flex-1 min-w-0 relative z-10">
+        {/* Main Content Area - Higher z-index */}
+        <div className="flex flex-col flex-1 min-w-0 relative z-20">
           {/* Advanced Developer Canvas Button - Fixed Position */}
-          <div className="absolute top-4 right-4 z-20">
+          <div className="absolute top-4 right-4 z-40">
             <Button
               onClick={() => setIsAdvancedCanvasOpen(true)}
               size="sm"
@@ -351,10 +359,13 @@ const Index = () => {
           />
         </div>
 
-        <AdvancedDeveloperCanvas
-          isOpen={isAdvancedCanvasOpen}
-          onClose={() => setIsAdvancedCanvasOpen(false)}
-        />
+        {/* Advanced Developer Canvas - Highest z-index */}
+        <div className="relative z-50">
+          <AdvancedDeveloperCanvas
+            isOpen={isAdvancedCanvasOpen}
+            onClose={() => setIsAdvancedCanvasOpen(false)}
+          />
+        </div>
       </div>
     </SidebarProvider>
   );
