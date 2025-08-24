@@ -1,14 +1,15 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Send, Plus, Code2, Loader2 } from 'lucide-react';
+import { Send, Plus, Code2, Loader2, User } from 'lucide-react';
 import { runChat } from '@/lib/gemini';
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { ChatBubble } from '@/components/ChatBubble';
-import { AdvancedDeveloperCanvas } from '@/components/AdvancedDeveloperCanvas';
-import { LiveCodingCanvas } from '@/components/LiveCodingCanvas';
+import AdvancedDeveloperCanvas from '@/components/AdvancedDeveloperCanvas';
+import LiveCodingCanvas from '@/components/LiveCodingCanvas';
 import {
   Select,
   SelectContent,
@@ -22,7 +23,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
-import { useUser } from '@clerk/nextjs';
 
 const Index = () => {
   const [input, setInput] = useState('');
@@ -38,10 +38,9 @@ const Index = () => {
   const [liveCanvasCode, setLiveCanvasCode] = useState('');
   const [projectTitle, setProjectTitle] = useState('');
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
-  const router = useRouter();
+  const navigate = useNavigate();
   const bottomRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast()
-  const { user } = useUser();
+  const { toast } = useToast();
 
   useEffect(() => {
     // Scroll to the bottom when messages update
@@ -92,26 +91,32 @@ const Index = () => {
     }
   };
 
-    const handleDeveloperMode = () => {
-      if (messages.length === 0) {
-        toast.info('Start a conversation to enable developer mode');
-        return;
-      }
-      
-      // Get the last assistant message for code generation
-      const lastAssistantMessage = messages
-        .filter(msg => msg.role === 'model')
-        .pop();
-      
-      if (!lastAssistantMessage) {
-        toast.info('No AI response available for developer mode');
-        return;
-      }
-      
-      // Pass the message content to the canvas for AI processing
-      setCanvasCode(lastAssistantMessage.parts[0]?.text || '');
-      setIsCanvasOpen(true);
-    };
+  const handleDeveloperMode = () => {
+    if (messages.length === 0) {
+      toast({
+        title: "Start a conversation",
+        description: "Start a conversation to enable developer mode",
+      });
+      return;
+    }
+    
+    // Get the last assistant message for code generation
+    const lastAssistantMessage = messages
+      .filter(msg => msg.role === 'model')
+      .pop();
+    
+    if (!lastAssistantMessage) {
+      toast({
+        title: "No AI response available",
+        description: "No AI response available for developer mode",
+      });
+      return;
+    }
+    
+    // Pass the message content to the canvas for AI processing
+    setCanvasCode(lastAssistantMessage.parts[0]?.text || '');
+    setIsCanvasOpen(true);
+  };
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-gray-100 to-gray-200">
@@ -122,19 +127,14 @@ const Index = () => {
             AI Code Generator
           </h1>
           <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm" onClick={() => router.push('/pricing')}>
+            <Button variant="outline" size="sm" onClick={() => navigate('/pricing')}>
               Upgrade
             </Button>
-            {user ? (
-              <Avatar>
-                <AvatarImage src={user.imageUrl} alt={user.firstName || "User"} />
-                <AvatarFallback>{user.firstName?.charAt(0) || user.lastName?.charAt(0) || "U"}</AvatarFallback>
-              </Avatar>
-            ) : (
-              <Button size="sm" onClick={() => router.push('/sign-in')}>
-                Sign In
-              </Button>
-            )}
+            <Avatar>
+              <AvatarFallback>
+                <User className="w-4 h-4" />
+              </AvatarFallback>
+            </Avatar>
           </div>
         </div>
       </div>
