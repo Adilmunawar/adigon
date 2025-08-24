@@ -78,9 +78,13 @@ const EnhancedChatInput = ({
 
     for (const file of files) {
       try {
-        const result = await uploadService.uploadFile(file);
-        setAttachedFiles(prev => [...prev, result]);
-        toast.success(`File "${file.name}" attached successfully!`);
+        const result = await uploadService.processFile(file);
+        if (result.success) {
+          setAttachedFiles(prev => [...prev, result]);
+          toast.success(`File "${file.name}" attached successfully!`);
+        } else {
+          toast.error(`Failed to attach "${file.name}": ${result.error}`);
+        }
       } catch (error) {
         console.error('Upload error:', error);
         toast.error(`Failed to attach "${file.name}"`);
@@ -93,7 +97,7 @@ const EnhancedChatInput = ({
   };
 
   const handleVoiceResult = (transcript: string) => {
-    setInput(prev => prev + (prev ? ' ' : '') + transcript);
+    setInput(input + (input ? ' ' : '') + transcript);
     setIsRecording(false);
   };
 
@@ -272,7 +276,7 @@ const EnhancedChatInput = ({
         {isRecording && (
           <div className="mt-3">
             <VoiceRecorder
-              onTranscript={handleVoiceResult}
+              onResult={handleVoiceResult}
               onStop={() => setIsRecording(false)}
             />
           </div>
