@@ -15,6 +15,8 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { geminiService } from '@/services/geminiService';
 import { Button } from '@/components/ui/button';
 import { FileUploadResult } from '@/services/uploadService';
+import { GeneratedCode } from '@/services/advancedCodeGenerator';
+import { parseContent } from '@/components/CodeBlock';
 
 const loadingMessages = [
   "Processing with advanced AI models...",
@@ -45,6 +47,8 @@ const Index = () => {
   const [isCoderMode, setIsCoderMode] = useState(false);
   const [isDeepSearchMode, setIsDeepSearchMode] = useState(false);
   const [isAdvancedCanvasOpen, setIsAdvancedCanvasOpen] = useState(false);
+  const [canvasInitialCode, setCanvasInitialCode] = useState('');
+  const [canvasInitialFiles, setCanvasInitialFiles] = useState<GeneratedCode[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: userProfile } = useQuery({
@@ -66,20 +70,25 @@ const Index = () => {
     if (!user?.id) return;
     console.log('Loading conversations for user:', user.id);
     
-    const { data, error } = await supabase
-      .from('conversations')
-      .select('id, title, created_at')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      console.error('Error loading conversations:', error);
+    try {
+      const { data, error } = await supabase
+        .from('conversations')
+        .select('id, title, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error loading conversations:', error);
+        toast.error("Failed to load conversations");
+        return;
+      }
+      
+      console.log('Loaded conversations:', data);
+      setConversations(data || []);
+    } catch (error) {
+      console.error('Error in loadConversations:', error);
       toast.error("Failed to load conversations");
-      return;
     }
-    
-    console.log('Loaded conversations:', data);
-    setConversations(data || []);
   };
 
   useEffect(() => {
@@ -91,7 +100,6 @@ const Index = () => {
   const handleSelectConversation = async (conversationId: string) => {
     console.log('Selecting conversation:', conversationId);
     setActiveConversationId(conversationId);
-    setIsLoading(true);
     
     try {
       const { data, error } = await supabase
@@ -112,13 +120,18 @@ const Index = () => {
         parts: msg.parts,
         ...(msg.image_url && { imageUrl: msg.image_url })
       }));
+      
       setMessages(loadedMessages);
       toast.success("Conversation loaded successfully");
+      
+      // Auto-scroll to bottom after loading messages
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      
     } catch (error) {
       console.error('Error in handleSelectConversation:', error);
       toast.error("Failed to load conversation");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -176,6 +189,19 @@ const Index = () => {
     }
   }, [messages.length]);
 
+  const extractCodeFromResponse = (responseText: string): GeneratedCode[] => {
+    const parsedFiles = parseContent(responseText);
+    
+    return parsedFiles
+      .filter(file => file.path !== 'SYSTEM_MESSAGE')
+      .map(file => ({
+        fileName: file.path,
+        content: file.code,
+        language: file.language,
+        errors: []
+      }));
+  };
+
   const handleSendMessage = async (messageText: string, attachments?: FileUploadResult[]) => {
     if ((!messageText.trim() && (!attachments || attachments.length === 0)) || isLoading) return;
 
@@ -216,7 +242,21 @@ const Index = () => {
       let systemPrompt = "You are AdiGon AI, a sophisticated and highly advanced AI assistant with cutting-edge capabilities.";
       
       if (isCoderMode) {
-        systemPrompt += " You are in Advanced Developer Mode. Generate complete, enterprise-grade applications with multiple files, proper architecture, error handling, TypeScript, React, and modern best practices. Create production-ready code with comprehensive functionality.";
+        systemPrompt += ` You are in Advanced Developer Mode. Generate complete, enterprise-grade applications with multiple files, proper architecture, error handling, TypeScript, React, and modern best practices. 
+
+IMPORTANT: When generating code, use this exact format for multiple files:
+
+FILE: path/to/file.extension
+\`\`\`language
+// Complete, production-ready code here
+\`\`\`
+
+FILE: path/to/another-file.extension  
+\`\`\`language
+// More complete code here
+\`\`\`
+
+Always provide fully functional, complete implementations. Never use placeholder comments or incomplete code.`;
       }
       
       if (isDeepSearchMode) {
@@ -253,6 +293,23 @@ const Index = () => {
       };
 
       setMessages(prev => [...prev, aiMessage]);
+
+      // If in coder mode and response contains code, auto-open Advanced Canvas
+      if (isCoderMode && (aiResponse.includes('FILE:') || aiResponse.includes('```'))) {
+        const extractedFiles = extractCodeFromResponse(aiResponse);
+        if (extractedFiles.length > 0) {
+          setCanvasInitialFiles(extractedFiles);
+          setCanvasInitialCode('');
+          setIsAdvancedCanvasOpen(true);
+          toast.success(`Generated ${extractedFiles.length} files - opened in Advanced Canvas!`);
+        } else if (aiResponse.includes('```')) {
+          // Single code block
+          setCanvasInitialCode(aiResponse);
+          setCanvasInitialFiles([]);
+          setIsAdvancedCanvasOpen(true);
+          toast.success("Code generated - opened in Advanced Canvas!");
+        }
+      }
 
       // Save conversation if user is logged in
       if (user?.id) {
@@ -312,6 +369,8 @@ const Index = () => {
   };
 
   const onReviewCode = (code: string) => {
+    setCanvasInitialCode(code);
+    setCanvasInitialFiles([]);
     setIsAdvancedCanvasOpen(true);
   };
 
@@ -323,6 +382,8 @@ const Index = () => {
     setMessages([]);
     setActiveConversationId(null);
     setInput('');
+    setCanvasInitialCode('');
+    setCanvasInitialFiles([]);
   };
 
   return (
@@ -334,7 +395,7 @@ const Index = () => {
         </div>
         
         {/* Sidebar */}
-        <div className="relative z-30">
+        <div className="relative z-30 pointer-events-auto">
           <AppSidebar
             isSettingsOpen={false}
             setIsSettingsOpen={() => {}}
@@ -350,7 +411,7 @@ const Index = () => {
         </div>
         
         {/* Main Content Area */}
-        <div className="flex flex-col flex-1 min-w-0 relative z-20">
+        <div className="flex flex-col flex-1 min-w-0 relative z-20 pointer-events-auto">
           {/* Advanced Developer Canvas Button */}
           <div className="absolute top-4 right-4 z-40">
             <Button
@@ -391,7 +452,13 @@ const Index = () => {
         <div className="relative z-50">
           <AdvancedDeveloperCanvas
             isOpen={isAdvancedCanvasOpen}
-            onClose={() => setIsAdvancedCanvasOpen(false)}
+            onClose={() => {
+              setIsAdvancedCanvasOpen(false);
+              setCanvasInitialCode('');
+              setCanvasInitialFiles([]);
+            }}
+            initialCode={canvasInitialCode}
+            initialFiles={canvasInitialFiles}
           />
         </div>
       </div>
