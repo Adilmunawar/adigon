@@ -1,263 +1,468 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Send, Plus, Code2, Loader2, User } from 'lucide-react';
-import { runChat } from '@/lib/gemini';
-import { useToast } from "@/hooks/use-toast"
-import { ChatBubble } from '@/components/ChatBubble';
+import { useAuth } from '@/providers/AuthProvider';
+import { toast } from '@/components/ui/sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { Code, MessageSquare, Search, Sparkles, Zap, Cpu, Brain } from 'lucide-react';
+import AppSidebar from '@/components/AppSidebar';
+import EnhancedChatInterface from '@/components/EnhancedChatInterface';
+import EnhancedChatInput from '@/components/EnhancedChatInput';
 import AdvancedDeveloperCanvas from '@/components/AdvancedDeveloperCanvas';
-import LiveCodingCanvas from '@/components/LiveCodingCanvas';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Slider } from "@/components/ui/slider"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent } from "@/components/ui/card"
-import { Switch } from "@/components/ui/switch"
-import { Textarea } from "@/components/ui/textarea"
-import { Separator } from "@/components/ui/separator"
+import ThreeScene from '@/components/ThreeScene';
+import { Message } from '@/components/ChatMessage';
+import { useQuery } from '@tanstack/react-query';
+import { SidebarProvider } from '@/components/ui/sidebar';
+import { geminiService } from '@/services/geminiService';
+import { Button } from '@/components/ui/button';
+import { FileUploadResult } from '@/services/uploadService';
+import { GeneratedCode } from '@/services/advancedCodeGenerator';
+import { parseContent } from '@/components/CodeBlock';
+
+const loadingMessages = [
+  "Processing with advanced AI models...",
+  "Analyzing your request across multiple systems...",
+  "Leveraging parallel processing capabilities...",
+  "Generating optimized response...",
+  "Finalizing comprehensive answer...",
+  "Almost ready with your result...",
+];
+
+const examplePrompts = [
+  { text: "Build a complete Instagram clone with authentication", icon: Code },
+  { text: "Create a professional dashboard with analytics", icon: Cpu },
+  { text: "Develop a real-time chat application", icon: MessageSquare },
+  { text: "Generate a complex e-commerce platform", icon: Brain },
+  { text: "Research latest AI development trends", icon: Search },
+];
 
 const Index = () => {
+  const { user } = useAuth();
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [responseLength, setResponseLength] = useState('adaptive');
-  const [codeDetailLevel, setCodeDetailLevel] = useState('comprehensive');
-  const [aiCreativity, setAiCreativity] = useState(0.7);
-  const [isCanvasOpen, setIsCanvasOpen] = useState(false);
-  const [canvasCode, setCanvasCode] = useState('');
-  const [isLiveCanvasOpen, setIsLiveCanvasOpen] = useState(false);
-  const [liveCanvasCode, setLiveCanvasCode] = useState('');
-  const [projectTitle, setProjectTitle] = useState('');
-  const [isDeveloperMode, setIsDeveloperMode] = useState(false);
-  const navigate = useNavigate();
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
+  const [conversations, setConversations] = useState<{id: string, title: string}[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [isCoderMode, setIsCoderMode] = useState(false);
+  const [isDeepSearchMode, setIsDeepSearchMode] = useState(false);
+  const [isAdvancedCanvasOpen, setIsAdvancedCanvasOpen] = useState(false);
+  const [canvasInitialCode, setCanvasInitialCode] = useState('');
+  const [canvasInitialFiles, setCanvasInitialFiles] = useState<GeneratedCode[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const { data: userProfile } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const loadConversations = async () => {
+    if (!user?.id) return;
+    console.log('Loading conversations for user:', user.id);
+    
+    try {
+      const { data, error } = await supabase
+        .from('conversations')
+        .select('id, title, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error loading conversations:', error);
+        toast.error("Failed to load conversations");
+        return;
+      }
+      
+      console.log('Loaded conversations:', data);
+      setConversations(data || []);
+    } catch (error) {
+      console.error('Error in loadConversations:', error);
+      toast.error("Failed to load conversations");
+    }
+  };
 
   useEffect(() => {
-    // Scroll to the bottom when messages update
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (user) {
+      loadConversations();
+    }
+  }, [user]);
 
-  const handleResponse = async () => {
-    if (!input.trim()) return;
+  const handleSelectConversation = async (conversationId: string) => {
+    console.log('Selecting conversation:', conversationId);
+    setActiveConversationId(conversationId);
+    
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+      
+      if (error) {
+        console.error('Error loading messages:', error);
+        toast.error("Failed to load conversation");
+        return;
+      }
+      
+      console.log('Loaded messages:', data);
+      const loadedMessages = data.map((msg: any) => ({
+        role: msg.role,
+        parts: msg.parts,
+        ...(msg.image_url && { imageUrl: msg.image_url })
+      }));
+      
+      setMessages(loadedMessages);
+      toast.success("Conversation loaded successfully");
+      
+      // Auto-scroll to bottom after loading messages
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      
+    } catch (error) {
+      console.error('Error in handleSelectConversation:', error);
+      toast.error("Failed to load conversation");
+    }
+  };
 
-    setLoading(true);
-    setError(null);
+  const handleDeleteConversation = async (conversationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('conversations')
+        .delete()
+        .eq('id', conversationId)
+        .eq('user_id', user?.id);
+      
+      if (error) {
+        console.error('Error deleting conversation:', error);
+        toast.error("Failed to delete conversation");
+        return;
+      }
+      
+      if (activeConversationId === conversationId) {
+        setActiveConversationId(null);
+        setMessages([]);
+      }
+      
+      await loadConversations();
+      toast.success("Conversation deleted");
+    } catch (error) {
+      console.error('Error in handleDeleteConversation:', error);
+      toast.error("Failed to delete conversation");
+    }
+  };
 
-    const userMessage = { role: 'user', parts: [{ text: input }] };
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
+  // Handle scroll detection for scroll button
+  useEffect(() => {
+    const handleScroll = (e: Event) => {
+      const target = e.target as HTMLElement;
+      if (target) {
+        const { scrollTop, scrollHeight, clientHeight } = target;
+        const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+        setShowScrollButton(!isNearBottom && messages.length > 2);
+      }
+    };
+
+    const chatContainer = document.querySelector('main');
+    if (chatContainer) {
+      chatContainer.addEventListener('scroll', handleScroll);
+      return () => chatContainer.removeEventListener('scroll', handleScroll);
+    }
+  }, [messages.length]);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [messages.length]);
+
+  const extractCodeFromResponse = (responseText: string): GeneratedCode[] => {
+    const parsedFiles = parseContent(responseText);
+    
+    return parsedFiles
+      .filter(file => file.path !== 'SYSTEM_MESSAGE')
+      .map(file => ({
+        fileName: file.path,
+        content: file.code,
+        language: file.language,
+        errors: []
+      }));
+  };
+
+  const handleSendMessage = async (messageText: string, attachments?: FileUploadResult[]) => {
+    if ((!messageText.trim() && (!attachments || attachments.length === 0)) || isLoading) return;
+
+    const currentMessages = [...messages];
+    let enhancedMessage = messageText;
+    let imageUrl = null;
+
+    // Process attachments
+    if (attachments && attachments.length > 0) {
+      for (const attachment of attachments) {
+        if (attachment.type === 'image' && attachment.url) {
+          imageUrl = attachment.url;
+        } else if (attachment.type === 'document' || attachment.type === 'audio') {
+          enhancedMessage = `[ATTACHMENT: ${attachment.name}]\n${enhancedMessage}`;
+        }
+      }
+    }
+
+    const userMessage: Message = {
+      role: "user" as const,
+      parts: [{ text: enhancedMessage }],
+      ...(imageUrl && { imageUrl })
+    };
+
+    setMessages(prev => [...prev, userMessage]);
     setInput('');
+    setIsLoading(true);
+
+    // Cycle through loading messages
+    let messageIndex = 0;
+    setLoadingMessage(loadingMessages[messageIndex]);
+    const loadingInterval = setInterval(() => {
+      messageIndex = (messageIndex + 1) % loadingMessages.length;
+      setLoadingMessage(loadingMessages[messageIndex]);
+    }, 2000);
 
     try {
-      const response = await runChat(input, updatedMessages, null, { responseLength, codeDetailLevel, aiCreativity });
-      const aiResponse = { role: 'model', parts: [{ text: response }] };
-      setMessages([...updatedMessages, aiResponse]);
+      let systemPrompt = "You are AdiGon AI, a sophisticated and highly advanced AI assistant with cutting-edge capabilities.";
+      
+      if (isCoderMode) {
+        systemPrompt += ` You are in Advanced Developer Mode. Generate complete, enterprise-grade applications with multiple files, proper architecture, error handling, TypeScript, React, and modern best practices. 
 
-      // Extract project title from the first response
-      if (messages.length === 0) {
-        const titleMatch = response.match(/FILE:\s*([^\n\/]+)/);
-        if (titleMatch && titleMatch[1]) {
-          setProjectTitle(titleMatch[1]);
-        } else {
-          setProjectTitle('Generated Project');
+IMPORTANT: When generating code, use this exact format for multiple files:
+
+FILE: path/to/file.extension
+\`\`\`language
+// Complete, production-ready code here
+\`\`\`
+
+FILE: path/to/another-file.extension  
+\`\`\`language
+// More complete code here
+\`\`\`
+
+Always provide fully functional, complete implementations. Never use placeholder comments or incomplete code.`;
+      }
+      
+      if (isDeepSearchMode) {
+        systemPrompt += " You are in Deep Research Mode. Provide comprehensive, well-researched responses with multiple perspectives, detailed analysis, current information, and advanced insights.";
+      }
+
+      let fileData = null;
+      if (imageUrl) {
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        const base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            resolve(result.split(',')[1]);
+          };
+          reader.readAsDataURL(blob);
+        });
+        fileData = { file: blob, base64, dataUrl: imageUrl };
+      }
+
+      const aiResponse = await geminiService.generateResponse(
+        enhancedMessage,
+        systemPrompt,
+        fileData
+      );
+
+      clearInterval(loadingInterval);
+      setIsLoading(false);
+
+      const aiMessage: Message = {
+        role: "model" as const,
+        parts: [{ text: aiResponse }]
+      };
+
+      setMessages(prev => [...prev, aiMessage]);
+
+      // If in coder mode and response contains code, auto-open Advanced Canvas
+      if (isCoderMode && (aiResponse.includes('FILE:') || aiResponse.includes('```'))) {
+        const extractedFiles = extractCodeFromResponse(aiResponse);
+        if (extractedFiles.length > 0) {
+          setCanvasInitialFiles(extractedFiles);
+          setCanvasInitialCode('');
+          setIsAdvancedCanvasOpen(true);
+          toast.success(`Generated ${extractedFiles.length} files - opened in Advanced Canvas!`);
+        } else if (aiResponse.includes('```')) {
+          // Single code block
+          setCanvasInitialCode(aiResponse);
+          setCanvasInitialFiles([]);
+          setIsAdvancedCanvasOpen(true);
+          toast.success("Code generated - opened in Advanced Canvas!");
         }
       }
 
-      // Open live canvas if code is generated
-      if (response.includes('FILE:')) {
-        setLiveCanvasCode(response);
-        setIsLiveCanvasOpen(true);
+      // Save conversation if user is logged in
+      if (user?.id) {
+        try {
+          let conversationId = activeConversationId;
+          
+          if (!conversationId) {
+            const conversationTitle = messageText.slice(0, 50) + (messageText.length > 50 ? '...' : '');
+            const { data: newConversation, error: convError } = await supabase
+              .from('conversations')
+              .insert({
+                user_id: user.id,
+                title: conversationTitle
+              })
+              .select()
+              .single();
+
+            if (convError) throw convError;
+            conversationId = newConversation.id;
+            setActiveConversationId(conversationId);
+            await loadConversations();
+          }
+
+          // Save messages
+          const messagesToSave = [userMessage, aiMessage].map((msg, index) => ({
+            conversation_id: conversationId,
+            parts: msg.parts,
+            role: msg.role,
+            created_at: new Date(Date.now() + index).toISOString(),
+            ...(msg.imageUrl && { image_url: msg.imageUrl })
+          }));
+
+          const { error: msgError } = await supabase
+            .from('messages')
+            .insert(messagesToSave);
+
+          if (msgError) throw msgError;
+        } catch (error) {
+          console.error('Error saving conversation:', error);
+          toast.error("Failed to save conversation");
+        }
       }
-    } catch (e: any) {
-      setError(e.message || 'An error occurred');
-      toast({
-        variant: "destructive",
-        title: "Uh oh! Something went wrong.",
-        description: "There was a problem with your request.",
-      })
-      console.error("Gemini Error: ", e)
-    } finally {
-      setLoading(false);
+
+    } catch (error) {
+      clearInterval(loadingInterval);
+      setIsLoading(false);
+      console.error('Error:', error);
+      
+      toast.error("I encountered an error processing your request. Our advanced AI system will retry automatically.");
+      setMessages(currentMessages);
     }
   };
 
-  const handleDeveloperMode = () => {
-    if (messages.length === 0) {
-      toast({
-        title: "Start a conversation",
-        description: "Start a conversation to enable developer mode",
-      });
-      return;
-    }
-    
-    // Get the last assistant message for code generation
-    const lastAssistantMessage = messages
-      .filter(msg => msg.role === 'model')
-      .pop();
-    
-    if (!lastAssistantMessage) {
-      toast({
-        title: "No AI response available",
-        description: "No AI response available for developer mode",
-      });
-      return;
-    }
-    
-    // Pass the message content to the canvas for AI processing
-    setCanvasCode(lastAssistantMessage.parts[0]?.text || '');
-    setIsCanvasOpen(true);
+  const onFormSubmit = async (e: React.FormEvent, attachments?: FileUploadResult[]) => {
+    e.preventDefault();
+    await handleSendMessage(input, attachments);
+  };
+
+  const onReviewCode = (code: string) => {
+    setCanvasInitialCode(code);
+    setCanvasInitialFiles([]);
+    setIsAdvancedCanvasOpen(true);
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleNewChat = async () => {
+    setMessages([]);
+    setActiveConversationId(null);
+    setInput('');
+    setCanvasInitialCode('');
+    setCanvasInitialFiles([]);
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-gray-100 to-gray-200">
-      {/* Header */}
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">
-            AI Code Generator
-          </h1>
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm" onClick={() => navigate('/pricing')}>
-              Upgrade
-            </Button>
-            <Avatar>
-              <AvatarFallback>
-                <User className="w-4 h-4" />
-              </AvatarFallback>
-            </Avatar>
-          </div>
+    <SidebarProvider>
+      <div className="flex h-screen w-full bg-slate-950 overflow-hidden relative">
+        {/* Three.js Background */}
+        <div className="fixed inset-0 opacity-30 pointer-events-none z-0">
+          <ThreeScene className="w-full h-full" />
         </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Chat Messages */}
-        <div className="flex-1 overflow-y-auto mb-4">
-          {messages.map((message, index) => (
-            <ChatBubble key={index} message={message} />
-          ))}
-          {error && <p className="text-red-500">{error}</p>}
-          {loading && (
-            <div className="flex items-center justify-start gap-2 text-gray-600">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Generating response...
-            </div>
-          )}
-          <div ref={bottomRef} /> {/* Scroll anchor */}
-        </div>
-
-        {/* Input Area */}
-        <div className="flex items-center gap-3">
-          <Input
-            type="text"
-            placeholder="Describe what you want to build..."
-            className="flex-1"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' ? handleResponse() : null}
-            disabled={loading}
+        
+        {/* Sidebar */}
+        <div className="relative z-30 pointer-events-auto">
+          <AppSidebar
+            isSettingsOpen={false}
+            setIsSettingsOpen={() => {}}
+            tempApiKey=""
+            setTempApiKey={() => {}}
+            handleSaveApiKey={() => {}}
+            handleNewChat={handleNewChat}
+            conversations={conversations}
+            activeConversationId={activeConversationId}
+            onSelectConversation={handleSelectConversation}
+            onDeleteConversation={handleDeleteConversation}
           />
-          <Button onClick={handleResponse} disabled={loading}>
-            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
-            Send
-          </Button>
         </div>
-      </div>
-
-      {/* Settings Sidebar */}
-      <div className="bg-white shadow border-t">
-        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          <h2 className="text-md font-semibold text-gray-700">Settings</h2>
-          <div className="flex items-center gap-6">
-            <div>
-              <Label htmlFor="response-length" className="block text-sm font-medium text-gray-700">
-                Response Length
-              </Label>
-              <Select value={responseLength} onValueChange={setResponseLength}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Adaptive" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="brief">Brief</SelectItem>
-                  <SelectItem value="adaptive">Adaptive</SelectItem>
-                  <SelectItem value="detailed">Detailed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="code-detail" className="block text-sm font-medium text-gray-700">
-                Code Detail
-              </Label>
-              <Select value={codeDetailLevel} onValueChange={setCodeDetailLevel}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Comprehensive" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="minimal">Minimal</SelectItem>
-                  <SelectItem value="comprehensive">Comprehensive</SelectItem>
-                  <SelectItem value="enterprise">Enterprise</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="ai-creativity" className="block text-sm font-medium text-gray-700">
-                AI Creativity
-              </Label>
-              <Card className="w-[180px]">
-                <CardContent>
-                  <Slider
-                    defaultValue={[aiCreativity]}
-                    max={1}
-                    step={0.1}
-                    onValueChange={(value) => setAiCreativity(value[0])}
-                  />
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch id="developer-mode" onCheckedChange={setIsDeveloperMode} />
-              <Label htmlFor="developer-mode">Developer Mode</Label>
-            </div>
-
-            {isDeveloperMode && (
-              <Button variant="secondary" onClick={handleDeveloperMode}>
-                <Code2 className="w-4 h-4 mr-2" />
-                Open AI Code Agent
-              </Button>
-            )}
+        
+        {/* Main Content Area */}
+        <div className="flex flex-col flex-1 min-w-0 relative z-20 pointer-events-auto">
+          {/* Advanced Developer Canvas Button */}
+          <div className="absolute top-4 right-4 z-40">
+            <Button
+              onClick={() => setIsAdvancedCanvasOpen(true)}
+              size="sm"
+              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-2xl backdrop-blur-sm border border-purple-500/30"
+            >
+              <Zap className="w-4 h-4 mr-2" />
+              Advanced Canvas
+            </Button>
           </div>
+
+          <EnhancedChatInterface
+            messages={messages}
+            isLoading={isLoading}
+            loadingMessage={loadingMessage}
+            examplePrompts={examplePrompts}
+            handleSendMessage={handleSendMessage}
+            onReviewCode={onReviewCode}
+            messagesEndRef={messagesEndRef}
+            showScrollButton={showScrollButton}
+            scrollToBottom={scrollToBottom}
+          />
+          
+          <EnhancedChatInput
+            input={input}
+            setInput={setInput}
+            isLoading={isLoading}
+            isCoderMode={isCoderMode}
+            setIsCoderMode={setIsCoderMode}
+            isDeepSearchMode={isDeepSearchMode}
+            setIsDeepSearchMode={setIsDeepSearchMode}
+            onSubmit={onFormSubmit}
+          />
+        </div>
+
+        {/* Advanced Developer Canvas */}
+        <div className="relative z-50">
+          <AdvancedDeveloperCanvas
+            isOpen={isAdvancedCanvasOpen}
+            onClose={() => {
+              setIsAdvancedCanvasOpen(false);
+              setCanvasInitialCode('');
+              setCanvasInitialFiles([]);
+            }}
+            initialCode={canvasInitialCode}
+            initialFiles={canvasInitialFiles}
+          />
         </div>
       </div>
-
-      {/* Advanced Developer Canvas Modal */}
-      <AdvancedDeveloperCanvas
-        isOpen={isCanvasOpen}
-        onClose={() => setIsCanvasOpen(false)}
-        initialCode={canvasCode}
-        title="AI Code Agent"
-      />
-
-      {/* Live Coding Canvas Modal */}
-      <LiveCodingCanvas
-        isOpen={isLiveCanvasOpen}
-        onClose={() => setIsLiveCanvasOpen(false)}
-        codeContent={liveCanvasCode}
-        projectTitle={projectTitle}
-      />
-    </div>
+    </SidebarProvider>
   );
 };
 
