@@ -235,19 +235,19 @@ const Index = () => {
             {isDeveloperMode && (
               <Button variant="secondary" onClick={handleDeveloperMode}>
                 <Code2 className="w-4 h-4 mr-2" />
-                Open in Canvas
+                Open AI Code Agent
               </Button>
             )}
           </div>
         </div>
       </div>
 
-      {/* Developer Canvas Modal */}
+      {/* Advanced Developer Canvas Modal */}
       <AdvancedDeveloperCanvas
         isOpen={isCanvasOpen}
         onClose={() => setIsCanvasOpen(false)}
         initialCode={canvasCode}
-        title={projectTitle}
+        title="AI Code Agent"
       />
 
       {/* Live Coding Canvas Modal */}
