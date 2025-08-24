@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -14,11 +15,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { GeneratedCode } from '@/services/advancedCodeGenerator';
 
 interface DeveloperCanvasProps {
   isOpen: boolean;
   onClose: () => void;
   initialCode?: string;
+  initialFiles?: GeneratedCode[];
   title?: string;
 }
 
