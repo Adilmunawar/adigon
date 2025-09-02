@@ -16,7 +16,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { GeneratedCode } from '@/services/advancedCodeGenerator';
-
 interface DeveloperCanvasProps {
   isOpen: boolean;
   onClose: () => void;
@@ -24,7 +23,6 @@ interface DeveloperCanvasProps {
   initialFiles?: GeneratedCode[];
   title?: string;
 }
-
 const DeveloperCanvas = ({ isOpen, onClose, initialCode = '', title = 'Developer Canvas' }: DeveloperCanvasProps) => {
   const [code, setCode] = useState(initialCode);
   const [language, setLanguage] = useState('typescript');
@@ -34,12 +32,10 @@ const DeveloperCanvas = ({ isOpen, onClose, initialCode = '', title = 'Developer
   const [output, setOutput] = useState('');
   const [activeTab, setActiveTab] = useState('code');
   const canvasRef = useRef<HTMLDivElement>(null);
-
   const handleCopyCode = () => {
     navigator.clipboard.writeText(code);
     toast.success('Code copied to clipboard!');
   };
-
   const handleDownload = () => {
     const blob = new Blob([code], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -52,13 +48,10 @@ const DeveloperCanvas = ({ isOpen, onClose, initialCode = '', title = 'Developer
     URL.revokeObjectURL(url);
     toast.success('Code downloaded!');
   };
-
   const handleExecute = async () => {
     setIsExecuting(true);
     setActiveTab('output');
-    
     try {
-      // Simulate code execution
       await new Promise(resolve => setTimeout(resolve, 2000));
       setOutput(`Execution completed successfully!\n\nLanguage: ${language}\nTemperature: ${temperature[0]}\nMax Tokens: ${maxTokens[0]}\n\nCode output would appear here...`);
     } catch (error) {
@@ -67,7 +60,6 @@ const DeveloperCanvas = ({ isOpen, onClose, initialCode = '', title = 'Developer
       setIsExecuting(false);
     }
   };
-
   const formatCode = () => {
     try {
       if (language === 'json') {
@@ -81,7 +73,6 @@ const DeveloperCanvas = ({ isOpen, onClose, initialCode = '', title = 'Developer
       toast.error('Invalid JSON syntax');
     }
   };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-7xl h-[90vh] bg-slate-950 border-slate-800 text-white flex flex-col">
@@ -97,7 +88,6 @@ const DeveloperCanvas = ({ isOpen, onClose, initialCode = '', title = 'Developer
                 Pro Canvas
               </Badge>
             </DialogTitle>
-            
             <div className="flex items-center gap-2">
               <Button
                 onClick={formatCode}
