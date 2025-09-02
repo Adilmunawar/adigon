@@ -1,10 +1,8 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
 @layer base {
   :root {
     --background: 220 13% 8%;
@@ -37,20 +35,16 @@
     --sidebar-ring: 262 83% 58%;
   }
 }
-
-/* Advanced animations */
 @keyframes background-pan {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
-
 @keyframes float {
   0%, 100% { transform: translateY(0px) rotate(0deg); }
   33% { transform: translateY(-15px) rotate(2deg); }
   66% { transform: translateY(-5px) rotate(-1deg); }
 }
-
 @keyframes glow {
   0%, 100% { 
     box-shadow: 0 0 20px hsl(var(--primary) / 0.1);
@@ -61,7 +55,6 @@
     transform: scale(1.02);
   }
 }
-
 @keyframes slide-in-right {
   0% { 
     transform: translateX(100%) scale(0.95);
@@ -74,7 +67,6 @@
     filter: blur(0px);
   }
 }
-
 @keyframes scale-in {
   0% {
     transform: scale(0.9) rotateY(15deg);
@@ -87,7 +79,6 @@
     filter: blur(0px);
   }
 }
-
 @keyframes pulse-glow {
   0%, 100% {
     box-shadow: 0 0 20px hsl(var(--primary) / 0.1);
@@ -96,7 +87,6 @@
     box-shadow: 0 0 40px hsl(var(--primary) / 0.3), 0 0 80px hsl(var(--primary) / 0.1);
   }
 }
-
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -105,28 +95,23 @@
     background-position: 200% 0;
   }
 }
-
 @keyframes bounce-subtle {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-2px); }
 }
-
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-2px); }
   75% { transform: translateX(2px); }
 }
-
 @keyframes typing-dots {
   0%, 60%, 100% { transform: translateY(0); }
   30% { transform: translateY(-10px); }
 }
-
 @keyframes progress-bar {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 }
-
 @keyframes gradient-shift {
   0%, 100% { 
     background-position: 0% 50%; 
@@ -135,7 +120,6 @@
     background-position: 100% 50%; 
   }
 }
-
 @keyframes fade-in-up {
   from {
     opacity: 0;
@@ -146,16 +130,13 @@
     transform: translateY(0);
   }
 }
-
 @layer base {
   * {
     @apply border-border;
   }
-
   html {
     color-scheme: dark;
   }
-
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
